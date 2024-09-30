@@ -1,0 +1,27 @@
+{
+  "name": "websurfer",
+  "version": "1.0.0",
+  "description": "a surffing application to crawl into linkedin and other social platform and interact with posts and sections",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AttockOffice85/node-websurfer.git"
+  },
+  "keywords": [
+    "webserver",
+    "social",
+    "media",
+    "node",
+    "js",
+    "puppeteer"
+  ],
+  "author": "Bakhtiar@Synet",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AttockOffice85/node-websurfer/issues"
+  },
+  "homepage": "https://github.com/AttockOffice85/node-websurfer#readme"
+}

@@ -4,6 +4,12 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { Browser, Page } from 'puppeteer';
+import dotenv from 'dotenv';
+
+import { performHumanLikeActions, typeWithHumanLikeSpeed, likeRandomPosts } from './scripts/HummanActions';
+
+// Load environment variables from .env file
+dotenv.config();
 
 puppeteer.use(StealthPlugin());
 
@@ -12,6 +18,9 @@ interface BrowserProfile {
     theme: string;
     // Add other profile preferences as needed
 }
+
+const linkedInUsername: string | undefined = process.env.LINKEDIN_USERNAME;
+const linkedInPassword: string | undefined = process.env.LINKEDIN_PASSWORD;
 
 class BrowserProfileManager {
     private baseDir: string;
@@ -41,9 +50,14 @@ class BrowserProfileManager {
 }
 
 async function main() {
+    if (!linkedInUsername || !linkedInPassword) {
+        console.log("LinkedIn credentials are missing");
+        return;
+    }
+
     const profileManager = new BrowserProfileManager();
     const userProfile: BrowserProfile = {
-        name: 'linkedin_automation',
+        name: linkedInUsername.split('@')[0],
         theme: 'dark',
         // Add other preferences as needed
     };
@@ -64,31 +78,44 @@ async function main() {
 
     // Login
     await page.goto(loginUrl);
-    await page.type('#username', 'your_username');
-    await page.type('#password', 'your_password');
-    await page.click('.login__form_action_container button');
-    await page.waitForNavigation();
+
+    // Perform human-like actions before entering credentials
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+    // Check if the login form is present (i.e., if the user is not logged in)
+    const isLoginPage = await page.$('#username');
+
+    if (isLoginPage) {
+        console.log("User is not logged in. Proceeding with login...");
+
+        // Type credentials with human-like speed
+        await typeWithHumanLikeSpeed(page, '#username', linkedInUsername);
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+        await typeWithHumanLikeSpeed(page, '#password', linkedInPassword);
+
+        await page.click('.login__form_action_container button');
+        await page.waitForNavigation();
+
+        console.log("Login successful. Proceeding to home page.");
+    } else {
+        console.log("User is already logged in. Skipping login step...");
+    }
 
     // Go to home page and like posts
-    await page.goto(homePageUrl);
+    // await page.goto(homePageUrl); // no need as the user will be redirected to homepage automatically. 
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+    await performHumanLikeActions(page);
+
     await likeRandomPosts(page, 5);
 
-    // Visit custom URL and like posts
-    await page.goto(customUrl);
-    await likeRandomPosts(page, 5);
+    if (customUrl) {
+        // Visit custom URL and like posts
+        await page.goto(customUrl);
+        await likeRandomPosts(page, 5);
+    }
 
     await browser.close();
-}
-
-async function likeRandomPosts(page: Page, count: number) {
-    const likeButtons = await page.$$('.react-button__trigger');
-    const shuffled = likeButtons.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, count);
-
-    for (const button of selected) {
-        await button.click();
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-    }
 }
 
 main().catch(console.error);

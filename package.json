@@ -2,9 +2,12 @@
   "name": "websurfer",
   "version": "1.0.0",
   "description": "a surffing application to crawl into linkedin and other social platform and interact with posts and sections",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js > console-logs.log",
+    "dev": "ts-node ./index.ts"
   },
   "repository": {
     "type": "git",
@@ -23,5 +26,15 @@
   "bugs": {
     "url": "https://github.com/AttockOffice85/node-websurfer/issues"
   },
-  "homepage": "https://github.com/AttockOffice85/node-websurfer#readme"
+  "homepage": "https://github.com/AttockOffice85/node-websurfer#readme",
+  "dependencies": {
+    "puppeteer": "^23.4.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "@types/puppeteer": "^5.4.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
 }

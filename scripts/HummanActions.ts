@@ -133,6 +133,13 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
 
     // Now focus on the search input
     await page.focus('[data-view-name="search-global-typeahead-input"]');
+
+    // Clear the search input field
+    await page.$eval('[data-view-name="search-global-typeahead-input"]', (input) => {
+        (input as HTMLInputElement).value = ''; // Clear the input field
+    });
+
+    // Wait for a random delay to simulate human behavior
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
     // Type search query with human-like speed

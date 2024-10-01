@@ -6,7 +6,11 @@ import fs from 'fs';
 import { Browser, Page } from 'puppeteer';
 import dotenv from 'dotenv';
 
+import { Company } from './scripts/types';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
+
+import mainData from './data/main-data.json';
+const companies: Company[] = mainData.companies;
 
 // Load environment variables from .env file
 dotenv.config();
@@ -114,13 +118,22 @@ async function main() {
     await likeRandomPosts(page, 5);
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-    await performLinkedInSearchAndLike(page, "Redstone.ai");
+    for (const company of companies) {
+        if (company) {
+            await performLinkedInSearchAndLike(page, company.name);
+        }
+        // Wait for a random delay between each iteration to simulate human behavior
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
+        // Go to home page and like posts
+        await page.goto(homePageUrl);
+        await page.waitForNavigation();
+    }
 
     if (customUrl) {
         // Visit custom URL and like posts
         await page.goto(customUrl);
         await likeRandomPosts(page, 5);
-    }else {
+    } else {
         // performLinkedInUserSearchAndConnect(page, "Sajid Usman redstone.ai");
         // performLinkedInUserSearchAndConnect(page, "Muhammad Waqas redstone.ai");
         // performLinkedInUserSearchAndConnect(page, "Ahsan ayaz synet");

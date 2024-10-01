@@ -119,6 +119,7 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     for (const company of companies) {
+        console.log("Company: ", company.name);
         if (company) {
             await performLinkedInSearchAndLike(page, company.name);
         }
@@ -126,7 +127,6 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
         // Go to home page and like posts
         await page.goto(homePageUrl);
-        await page.waitForNavigation();
     }
 
     if (customUrl) {
@@ -134,9 +134,9 @@ async function main() {
         await page.goto(customUrl);
         await likeRandomPosts(page, 5);
     } else {
-        // performLinkedInUserSearchAndConnect(page, "Sajid Usman redstone.ai");
-        // performLinkedInUserSearchAndConnect(page, "Muhammad Waqas redstone.ai");
-        // performLinkedInUserSearchAndConnect(page, "Ahsan ayaz synet");
+        // performLinkedInUserSearchAndConnect(page, "Sajid Usman The Redstone AI");
+        // performLinkedInUserSearchAndConnect(page, "Muhammad Waqas The Redstone AI");
+        // performLinkedInUserSearchAndConnect(page, "Ahsan ayaz SyNet Digital");
         console.log("user search here...");
     }
 

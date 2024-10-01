@@ -116,7 +116,6 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
 
 export async function performLinkedInSearchAndLike(page: Page, searchQuery: string) {
     // Check if the search input is directly available
-    // clear the search bar first
     const searchInput = await page.$('[data-view-name="search-global-typeahead-input"]');
 
     if (!searchInput) {
@@ -131,7 +130,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         }
     }
 
-    // Now focus on the search input
+    // Focus on the search input
     await page.focus('[data-view-name="search-global-typeahead-input"]');
 
     // Clear the search input field
@@ -150,23 +149,55 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     await page.waitForNavigation();
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
-    // Like posts on the search results page
-    await likeRandomPosts(page, 10);
+    // Check if results are relevant; if not, click "Companies"
+    const companiesButton = await page.$('div#search-reusables__filters-bar a'); // Select all anchor tags
+    if (companiesButton) {
+        const buttonText = await page.evaluate(element => element.textContent, companiesButton);
+        if (buttonText && buttonText.includes("Companies")) {
+            await companiesButton.click();
+            await page.waitForNavigation();
+        }
+    }
 
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+    // Now check if the relevant results are displayed
+    const companyLink = await page.$('div[data-view-name="search-entity-result-universal-template"] a.app-aware-link');
 
-    // Check for "See all post results" button
-    const seeAllPostsButton = await page.$('div.search-results__cluster-bottom-banner a[href*="/search/results/content/"]');
-    if (seeAllPostsButton) {
-
-        await seeAllPostsButton.click();
+    if (companyLink) {
+        await companyLink.click();
         await page.waitForNavigation();
 
-        console.log("search result page");
+        // After navigating to the company page, go to the "Posts" tab and like posts
+        await goToAndLikeCompanyPosts(page);  // Call the new function to go to "Posts" and like
+    } else {
+        console.log("No company links found.");
+    }
 
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+}
 
-        // Like all posts on the results page
-        await likeRandomPosts(page, 10);
+// Function to like posts on the company's "Posts" page
+async function goToAndLikeCompanyPosts(page: Page) {
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+    // Find the "Posts" section in the navigation bar
+    const postsTab = await page.$('ul.org-page-navigation__items a[href*="/posts/"]');
+
+    await performHumanActions(page);
+
+    // Scroll to top
+    await page.evaluate(() => {
+        window.scrollBy(0, 0);
+    });
+
+    if (postsTab) {
+        // Click the "Posts" tab
+        await postsTab.click();
+        await page.waitForNavigation();
+
+        // Optionally, wait a bit for the posts to load
+        await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+
+        // Like posts after navigating to the "Posts" section
+        await likeRandomPosts(page, 1);
+    } else {
+        console.log('Posts tab not found on company page');
     }
 }

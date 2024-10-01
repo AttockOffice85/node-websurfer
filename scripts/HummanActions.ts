@@ -18,14 +18,28 @@ export async function performHumanLikeActions(page: Page) {
         if (elements.length > 0) {
             const randomElement = elements[Math.floor(Math.random() * elements.length)];
             const text = randomElement.textContent || '';
-            const start = Math.floor(Math.random() * (text.length / 2));
-            const end = start + Math.floor(Math.random() * (text.length / 2));
-            const range = document.createRange();
-            range.setStart(randomElement.firstChild!, start);
-            range.setEnd(randomElement.firstChild!, end);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
+            if (text.length > 0) {
+                const start = Math.floor(Math.random() * text.length);
+                const end = Math.min(start + Math.floor(Math.random() * 10) + 1, text.length);
+
+                const range = document.createRange();
+                const textNodes = Array.from(randomElement.childNodes)
+                    .filter(node => node.nodeType === Node.TEXT_NODE && node.textContent!.trim().length > 0);
+
+                if (textNodes.length > 0) {
+                    const randomTextNode = textNodes[Math.floor(Math.random() * textNodes.length)];
+                    const nodeText = randomTextNode.textContent!;
+                    const nodeStart = Math.min(start, nodeText.length - 1);
+                    const nodeEnd = Math.min(end, nodeText.length);
+
+                    range.setStart(randomTextNode, nodeStart);
+                    range.setEnd(randomTextNode, nodeEnd);
+
+                    const selection = window.getSelection();
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+                }
+            }
         }
     });
 

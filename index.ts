@@ -6,7 +6,7 @@ import fs from 'fs';
 import { Browser, Page } from 'puppeteer';
 import dotenv from 'dotenv';
 
-import { performHumanLikeActions, typeWithHumanLikeSpeed, likeRandomPosts } from './scripts/HummanActions';
+import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -76,13 +76,17 @@ async function main() {
 
     const page: Page = await browser.newPage();
 
+    await page.setViewport({
+        width: 1920,
+        height: 1080,
+    });
+
     // Login
     await page.goto(loginUrl);
 
-    // Perform human-like actions before entering credentials
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-    // Check if the login form is present (i.e., if the user is not logged in)
+    // Check if the login form is present
     const isLoginPage = await page.$('#username');
 
     if (isLoginPage) {
@@ -105,15 +109,26 @@ async function main() {
     // await page.goto(homePageUrl); // no need as the user will be redirected to homepage automatically. 
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-    await performHumanLikeActions(page);
+    await performHumanActions(page);
 
     await likeRandomPosts(page, 5);
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+    await performLinkedInSearchAndLike(page, "Redstone.ai");
 
     if (customUrl) {
         // Visit custom URL and like posts
         await page.goto(customUrl);
         await likeRandomPosts(page, 5);
+    }else {
+        // performLinkedInUserSearchAndConnect(page, "Sajid Usman redstone.ai");
+        // performLinkedInUserSearchAndConnect(page, "Muhammad Waqas redstone.ai");
+        // performLinkedInUserSearchAndConnect(page, "Ahsan ayaz synet");
+        console.log("user search here...");
     }
+
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 6000));
+
 
     await browser.close();
 }

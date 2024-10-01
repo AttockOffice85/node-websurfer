@@ -1,6 +1,6 @@
 import { Page } from 'puppeteer';
 
-export async function performHumanLikeActions(page: Page) {
+export async function performHumanActions(page: Page) {
     // Wait on the page for a random time between 2 to 5 seconds
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
 
@@ -60,38 +60,106 @@ export async function typeWithHumanLikeSpeed(page: Page, selector: string, text:
     });
 }
 
-export async function likeRandomPosts(page: Page, count: number) {
-    // Step 1: Select all unliked "like" buttons from the feed-shared-social-action-bar elements
-    const likeButtons = await page.$$(
-        '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
-    );
+export async function likeRandomPosts(page: Page, count: number): Promise<void> {
+    let likeButtons: any[] = [];
+    let previousHeight = 0;
 
-    // Step 2: Check if there are enough posts to like
-    const availableCount = likeButtons.length;
-    if (availableCount === 0) {
-        console.log("No unliked posts available.");
-        return;
+    // Step 1: Continuously scroll and gather "like" buttons until enough are found or no more content is loaded
+    while (likeButtons.length < count) {
+        // Select all unliked "like" buttons from the feed-shared-social-action-bar elements
+        likeButtons = await page.$$(
+            '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
+        );
+
+        const availableCount = likeButtons.length;
+
+        if (availableCount >= count) {
+            console.log(`Found enough unliked posts (${availableCount} available).`);
+            break;
+        }
+
+        console.log(`Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
+
+        // Step 2: Scroll to the bottom of the page to load more posts
+        previousHeight = await page.evaluate(() => document.body.scrollHeight);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds to load more posts
+
+        // Step 3: Check if we have reached the end of the page
+        const newHeight = await page.evaluate(() => document.body.scrollHeight);
+        if (newHeight === previousHeight) {
+            console.log("Reached the bottom of the page, no more posts to load.");
+            break;
+        }
     }
 
-    console.log(`Found ${availableCount} unliked posts.`);
-
-    // Step 3: Shuffle the buttons to randomize the selection
+    // Step 4: Shuffle the buttons to randomize the selection
     const shuffled = likeButtons.sort(() => 0.5 - Math.random());
 
-    // Step 4: Select up to 'count' number of buttons, or fewer if there aren't enough
-    const selected = shuffled.slice(0, Math.min(count, availableCount));
+    // Step 5: Select up to 'count' number of buttons, or fewer if there aren't enough
+    const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
 
-    // Step 5: Iterate over the selected buttons
+    // Step 6: Iterate over the selected buttons and click them
     for (const button of selected) {
         // Scroll the button into view
-        await button.evaluate(b => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string; }) => any; }) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 
-        // Step 6: Click the button
+        // Click the button
         await button.click();
 
-        // Step 7: Introduce a random delay (between 1 and 5 seconds) after each click
+        // Introduce a random delay (between 1 and 5 seconds) after each click
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
     }
 
     console.log(`Successfully liked ${selected.length} posts.`);
+}
+
+export async function performLinkedInSearchAndLike(page: Page, searchQuery: string) {
+    // Check if the search input is directly available
+    // clear the search bar first
+    const searchInput = await page.$('[data-view-name="search-global-typeahead-input"]');
+
+    if (!searchInput) {
+        // If not, look for the search button and click it
+        const searchButton = await page.$('#global-nav-search');
+        if (searchButton) {
+            await searchButton.click();
+            await page.waitForSelector('[data-view-name="search-global-typeahead-input"]', { visible: true });
+        } else {
+            console.log("Couldn't find search input or button");
+            return;
+        }
+    }
+
+    // Now focus on the search input
+    await page.focus('[data-view-name="search-global-typeahead-input"]');
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+    // Type search query with human-like speed
+    await typeWithHumanLikeSpeed(page, '[data-view-name="search-global-typeahead-input"]', searchQuery);
+
+    // Press Enter to search
+    await page.keyboard.press('Enter');
+    await page.waitForNavigation();
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+    // Like posts on the search results page
+    await likeRandomPosts(page, 10);
+
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+    // Check for "See all post results" button
+    const seeAllPostsButton = await page.$('div.search-results__cluster-bottom-banner a[href*="/search/results/content/"]');
+    if (seeAllPostsButton) {
+
+        await seeAllPostsButton.click();
+        await page.waitForNavigation();
+
+        console.log("search result page");
+
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+        // Like all posts on the results page
+        await likeRandomPosts(page, 10);
+    }
 }

@@ -174,6 +174,75 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
 
 }
 
+export async function likeRandomPostsWithReactions(page: Page, count: number): Promise<void> {
+    let likeButtons: any[] = [];
+    let previousHeight = 0;
+
+    // Step 1: Continuously scroll and gather "like" buttons until enough are found or no more content is loaded
+    while (likeButtons.length < count) {
+        // Select all unliked "like" buttons from the feed-shared-social-action-bar elements
+        likeButtons = await page.$$(
+            '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
+        );
+
+        const availableCount = likeButtons.length;
+
+        if (availableCount >= count) {
+            console.log(`Found enough unliked posts (${availableCount} available).`);
+            break;
+        }
+
+        console.log(`Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
+
+        // Step 2: Scroll to the bottom of the page to load more posts
+        previousHeight = await page.evaluate(() => document.body.scrollHeight);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds to load more posts
+
+        // Step 3: Check if we have reached the end of the page
+        const newHeight = await page.evaluate(() => document.body.scrollHeight);
+        if (newHeight === previousHeight) {
+            console.log("Reached the bottom of the page, no more posts to load.");
+            break;
+        }
+    }
+
+    // Step 4: Shuffle the buttons to randomize the selection
+    const shuffled = likeButtons.sort(() => 0.5 - Math.random());
+
+    // Step 5: Select up to 'count' number of buttons, or fewer if there aren't enough
+    const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
+
+    // Step 6: Iterate over the selected buttons and apply reactions
+    for (const button of selected) {
+        // Scroll the button into view
+        await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string; }) => any; }) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+
+        // Step 7: Hover over the like button to trigger the reactions menu
+        await button.hover();
+        
+        // Wait for the reactions menu to become visible (adjust selector as necessary)
+        await page.waitForSelector('.reactions-menu--active', { visible: true });
+
+        // Step 8: Select a reaction to click
+        // Assuming the first reaction is the "Like", second is "Celebrate", etc.
+        const reactions = await page.$$('.reactions-menu--active button');
+        
+        if (reactions.length > 0) {
+            // Choose a random reaction (adjust as per your needs, here we're selecting the first one)
+            const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+            
+            // Click the reaction
+            await randomReaction.click();
+        }
+
+        // Step 9: Introduce a random delay (between 1 and 5 seconds) after each action
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
+    }
+
+    console.log(`Successfully reacted to ${selected.length} posts.`);
+}
+
 // Function to like posts on the company's "Posts" page
 async function goToAndLikeCompanyPosts(page: Page) {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
@@ -196,7 +265,8 @@ async function goToAndLikeCompanyPosts(page: Page) {
         await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
 
         // Like posts after navigating to the "Posts" section
-        await likeRandomPosts(page, 1);
+        // await likeRandomPosts(page, 1);
+        await likeRandomPostsWithReactions(page, 1);
     } else {
         console.log('Posts tab not found on company page');
     }

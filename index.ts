@@ -7,7 +7,7 @@ import { Browser, Page } from 'puppeteer';
 import dotenv from 'dotenv';
 
 import { Company } from './scripts/types';
-import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
+import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts, likeRandomPostsWithReactions } from './scripts/HummanActions';
 
 import mainData from './data/main-data.json';
 const companies: Company[] = mainData.companies;
@@ -115,7 +115,7 @@ async function main() {
 
     await performHumanActions(page);
 
-    await likeRandomPosts(page, 5);
+    await likeRandomPosts(page, 3);
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     for (const company of companies) {

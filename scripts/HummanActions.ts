@@ -1,4 +1,5 @@
 import { Page } from 'puppeteer';
+import { sendContentToGPT } from './BusinessLogics';
 
 export async function performHumanActions(page: Page) {
     // Wait on the page for a random time between 2 to 5 seconds
@@ -180,64 +181,121 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
 
     // Step 1: Continuously scroll and gather "like" buttons until enough are found or no more content is loaded
     while (likeButtons.length < count) {
-        // Select all unliked "like" buttons from the feed-shared-social-action-bar elements
-        likeButtons = await page.$$(
-            '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
-        );
+        likeButtons = await page.$$('.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]');
 
-        const availableCount = likeButtons.length;
-
-        if (availableCount >= count) {
-            console.log(`Found enough unliked posts (${availableCount} available).`);
+        if (likeButtons.length >= count) {
+            console.log(`Found enough unliked posts (${likeButtons.length} available).`);
             break;
         }
 
-        console.log(`Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
+        console.log(`Found ${likeButtons.length} unliked posts so far. Scrolling down to load more posts...`);
 
-        // Step 2: Scroll to the bottom of the page to load more posts
         previousHeight = await page.evaluate(() => document.body.scrollHeight);
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds to load more posts
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Step 3: Check if we have reached the end of the page
         const newHeight = await page.evaluate(() => document.body.scrollHeight);
         if (newHeight === previousHeight) {
-            console.log("Reached the bottom of the page, no more posts to load.");
+            console.log('Reached the bottom of the page, no more posts to load.');
             break;
         }
     }
 
-    // Step 4: Shuffle the buttons to randomize the selection
+    // Shuffle the buttons to randomize the selection
     const shuffled = likeButtons.sort(() => 0.5 - Math.random());
-
-    // Step 5: Select up to 'count' number of buttons, or fewer if there aren't enough
     const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
 
-    // Step 6: Iterate over the selected buttons and apply reactions
     for (const button of selected) {
-        // Scroll the button into view
-        await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string; }) => any; }) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        await button.evaluate((b: HTMLElement) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 
-        // Step 7: Hover over the like button to trigger the reactions menu
-        await button.hover();
-        
-        // Wait for the reactions menu to become visible (adjust selector as necessary)
-        await page.waitForSelector('.reactions-menu--active', { visible: true });
-
-        // Step 8: Select a reaction to click
-        // Assuming the first reaction is the "Like", second is "Celebrate", etc.
-        const reactions = await page.$$('.reactions-menu--active button');
-        
-        if (reactions.length > 0) {
-            // Choose a random reaction (adjust as per your needs, here we're selecting the first one)
-            const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-            
-            // Click the reaction
-            await randomReaction.click();
+        // Step 2: Handle "see more" button to load full post content
+        try {
+            const seeMoreButton = await button.$('.feed-shared-inline-show-more-text__see-more-less-toggle');
+            if (seeMoreButton) {
+                await seeMoreButton.click();
+                console.log('Clicked "see more" to reveal full post content.');
+            }
+        } catch (error) {
+            console.error('Error clicking "see more" button:', error);
         }
 
-        // Step 9: Introduce a random delay (between 1 and 5 seconds) after each action
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
+        // Step 3: Extract post content as complete HTML
+        const postHTML = await button.evaluate(() => {
+            const descriptionWrapper = document.querySelector('.feed-shared-update-v2__description-wrapper');
+            if (descriptionWrapper) {
+                // Return plain text content with proper punctuation
+                return descriptionWrapper?.textContent?.trim();
+            }
+            return '';
+        });
+
+        if (postHTML) {
+            // console.log('Post HTML:', postHTML);
+
+            // Step 4: Send content to GPT-4 and get the response
+            const { comment, reaction } = await sendContentToGPT(postHTML);
+            console.log('Generated Comment:', comment);
+            console.log('Suggested Reaction:', reaction);
+
+            // Step 5: Hover over the like button to trigger reactions menu
+            await button.hover();
+            await page.waitForSelector('.reactions-menu--active', { visible: true });
+
+            // Step 6: Select reaction based on GPT-4 suggestion
+            const reactionMapping: { [key: string]: string } = {
+                like: 'React Like',
+                love: 'React Love',
+                support: 'React Support',
+                insightful: 'React Insightful',
+                funny: 'React Funny'
+            };
+
+            const reactions = await page.$$('.reactions-menu--active button');
+            const reactionLabel = reactionMapping[reaction.toLowerCase()];
+
+            if (reactionLabel && reactions) {
+                const reactionButton = await page.$(`.reactions-menu--active button[aria-label="${reactionLabel}"]`);
+                if (reactionButton) {
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 800));
+                    await reactionButton.click();
+                    console.log(`Applied reaction: ${reaction}`);
+                } else {
+                    console.log(`Failed to find the button for the reaction: ${reactionLabel}`);
+                }
+            } else {
+                console.log('Invalid reaction from GPT-4.');
+            }
+
+            // Random delay between actions
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
+
+            // Step 7: Insert comment into the input field
+            const commentBoxSelector = '.comments-comment-box--cr .editor-content.ql-container';
+            const commentBox = await page.$(commentBoxSelector);
+
+            if (commentBox) {
+                await commentBox.click(); // Click to focus the comment box
+
+                // Type search query with human-like speed
+                await typeWithHumanLikeSpeed(page, commentBoxSelector, comment);
+
+                console.log(`Inserted comment: ${comment}`);
+
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 400));
+
+                // Submit button within the comment box
+                const submitButton = await page.$('.comments-comment-box__submit-button--cr');
+                if (submitButton) {
+                    await submitButton.click();
+                    console.log('Submitted the comment.');
+                } else {
+                    console.log('Submit button not found.');
+                }
+            } else {
+                console.log('Comment box not found.');
+            }
+
+        }
     }
 
     console.log(`Successfully reacted to ${selected.length} posts.`);

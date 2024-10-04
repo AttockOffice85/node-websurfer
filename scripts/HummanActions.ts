@@ -162,11 +162,12 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
 
     // Now check if the relevant results are displayed
     const companyLink = await page.$('div[data-view-name="search-entity-result-universal-template"] a.app-aware-link');
-
+    
     if (companyLink) {
         await companyLink.click();
         await page.waitForNavigation();
-
+        
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 600));
         // After navigating to the company page, go to the "Posts" tab and like posts
         await goToAndLikeCompanyPosts(page);  // Call the new function to go to "Posts" and like
     } else {
@@ -202,8 +203,9 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
     }
 
     // Shuffle the buttons to randomize the selection
-    const shuffled = likeButtons.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
+    // const shuffled = likeButtons.sort(() => 0.5 - Math.random());
+    // const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
+    const selected = likeButtons.sort(() => 0.5 - Math.random());
 
     for (const button of selected) {
         await button.evaluate((b: HTMLElement) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
@@ -229,19 +231,40 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
             return '';
         });
 
-        if (postHTML) {
-            // console.log('Post HTML:', postHTML);
+        const commentButton = await page.$('button[aria-label="Comment"]');
+        if (commentButton) {
+            commentButton.click();
+        }
 
-            // Step 4: Send content to GPT-4 and get the response
-            const { comment, reaction } = await sendContentToGPT(postHTML);
+        // Random delay between actions
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
+
+        // Step 4: Extract comments from the post
+        const comments = await page.evaluate(() => {
+            const commentElements = document.querySelectorAll('.feed-shared-inline-show-more-text.comments-comment-item__inline-show-more-text span[dir="ltr"]');
+            const extractedComments: string[] = [];
+            commentElements.forEach(commentElement => {
+                if (commentElement.textContent) {
+                    extractedComments.push(commentElement.textContent.trim());
+                }
+            });
+            // Return the first 5 comments or fewer if not enough comments exist
+            return extractedComments.slice(0, 5);
+        });
+
+        console.log("Extracted comments: ", comments);
+
+        if (postHTML) {
+            // Step 5: Send content and comments to GPT-4 and get the response
+            const { comment, reaction } = await sendContentToGPT(postHTML, comments);
             console.log('Generated Comment:', comment);
             console.log('Suggested Reaction:', reaction);
 
-            // Step 5: Hover over the like button to trigger reactions menu
+            // Step 6: Hover over the like button to trigger reactions menu
             await button.hover();
             await page.waitForSelector('.reactions-menu--active', { visible: true });
 
-            // Step 6: Select reaction based on GPT-4 suggestion
+            // Step 7: Select reaction based on GPT-4 suggestion
             const reactionMapping: { [key: string]: string } = {
                 like: 'React Like',
                 love: 'React Love',
@@ -269,14 +292,14 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
             // Random delay between actions
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
 
-            // Step 7: Insert comment into the input field
+            // Step 8: Insert comment into the input field
             const commentBoxSelector = '.comments-comment-box--cr .editor-content.ql-container';
             const commentBox = await page.$(commentBoxSelector);
 
             if (commentBox) {
                 await commentBox.click(); // Click to focus the comment box
 
-                // Type search query with human-like speed
+                // Type comment with human-like speed
                 await typeWithHumanLikeSpeed(page, commentBoxSelector, comment);
 
                 console.log(`Inserted comment: ${comment}`);
@@ -294,7 +317,6 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
             } else {
                 console.log('Comment box not found.');
             }
-
         }
     }
 
@@ -324,7 +346,7 @@ async function goToAndLikeCompanyPosts(page: Page) {
 
         // Like posts after navigating to the "Posts" section
         // await likeRandomPosts(page, 1);
-        await likeRandomPostsWithReactions(page, 1);
+        await likeRandomPostsWithReactions(page, 5);
     } else {
         console.log('Posts tab not found on company page');
     }

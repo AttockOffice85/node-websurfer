@@ -5,8 +5,13 @@ const huggingFaceAPIKey = process.env.HUGGING_FACE_API_KEY;
 const inference = new HfInference(huggingFaceAPIKey); // Replace with your Hugging Face token
 
 // Function to send content and get comment + reaction
-export async function sendContentToGPT(htmlContent: string): Promise<{ comment: string; reaction: string }> {
-    const prompt = `Here is a LinkedIn post: ${htmlContent}. Please provide a **brief**, two- to three-word appropriate comment and a **single-word** reaction from the options: like, love, support, insightful, funny. Return the response in JSON format: {"comment": "<your_comment>", "reaction": "<your_reaction>"}.`;
+export async function sendContentToGPT(htmlContent: string, comments?: string[]): Promise<{ comment: string; reaction: string }> {
+    let prompt = '';
+    if (comments) {
+        prompt = `Here is a LinkedIn post: ${htmlContent}. Here are some comments from other users: ${comments}. Please provide a **brief**, two- to three-word appropriate comment and a **single-word** reaction from the options: like, love, support, insightful, funny. Return the response in JSON format: {"comment": "<your_comment>", "reaction": "<your_reaction>"}.`;
+    } else {
+        prompt = `Here is a LinkedIn post: ${htmlContent}. Please provide a **brief**, two- to three-word appropriate comment and a **single-word** reaction from the options: like, love, support, insightful, funny. Return the response in JSON format: {"comment": "<your_comment>", "reaction": "<your_reaction>"}.`;
+    }
 
     let generatedText = '';
     console.log("htmlContent; ", htmlContent)

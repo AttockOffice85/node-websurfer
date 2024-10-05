@@ -1,6 +1,6 @@
 import { HfInference } from '@huggingface/inference';
 
-const huggingFaceAPIKey = process.env.HUGGING_FACE_API_KEY;
+const huggingFaceAPIKey: string | undefined = process.env.HUGGING_FACE_API_KEY;
 
 const inference = new HfInference(huggingFaceAPIKey); // Replace with your Hugging Face token
 

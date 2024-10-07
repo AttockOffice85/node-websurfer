@@ -1,8 +1,5 @@
 import { Page } from 'puppeteer';
 
-const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
-const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
-
 export async function performHumanActions(page: Page) {
     // Wait on the page for a random time between 2 to 5 seconds
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
@@ -119,7 +116,7 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
     console.log(`Successfully liked ${selected.length} posts.`);
 }
 
-export async function performLinkedInSearchAndLike(page: Page, searchQuery: string) {
+export async function performLinkedInSearchAndLike(page: Page, searchQuery: string, noOfCompanyPosts: number) {
     // Check if the search input is directly available
     const searchInput = await page.$('[data-view-name="search-global-typeahead-input"]');
 
@@ -172,7 +169,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         await page.waitForNavigation();
 
         // After navigating to the company page, go to the "Posts" tab and like posts
-        await goToAndLikeCompanyPosts(page);  // Call the new function to go to "Posts" and like
+        await goToAndLikeCompanyPosts(page, noOfCompanyPosts);  // Call the new function to go to "Posts" and like
     } else {
         console.log("No company links found.");
     }
@@ -249,7 +246,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
 }
 
 // Function to like posts on the company's "Posts" page
-async function goToAndLikeCompanyPosts(page: Page) {
+async function goToAndLikeCompanyPosts(page: Page, noOfCompanyPosts: number) {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     // Find the "Posts" section in the navigation bar
     const postsTab = await page.$('ul.org-page-navigation__items a[href*="/posts/"]');
@@ -271,7 +268,7 @@ async function goToAndLikeCompanyPosts(page: Page) {
 
         // Like posts after navigating to the "Posts" section
         // await likeRandomPosts(page, 1);
-        await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact);
+        await likeRandomPostsWithReactions(page, noOfCompanyPosts);
     } else {
         console.log('Posts tab not found on company page');
     }

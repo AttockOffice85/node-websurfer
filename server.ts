@@ -3,6 +3,7 @@ import path from 'path';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { exec } from 'child_process';
+import fs from 'fs';
 
 // Initialize environment variables
 dotenv.config();
@@ -23,34 +24,31 @@ app.get('/', (req, res) => {
 
 // Handle form submission
 app.post('/start-bot', (req, res) => {
-    // Update environment variables based on form data
-    if (req.body.username && req.body.password) {
-        process.env.LINKEDIN_USERNAME = req.body.username;
-        process.env.LINKEDIN_PASSWORD = req.body.password;
-        process.env.NO_OF_RANDOM_POSTS = req.body.randomPosts;
-        process.env.NO_OF_COMPANY_POSTS = req.body.companyPosts;
+    const username = req.body.username;
+    const sanitizedUsername = username.split('@')[0]; // Sanitize the username for the log file
 
-        // Parse companies list from textarea input
-        const companies = req.body.companies.split(',').map((company: string) => company.trim().replace(/"/g, ''));
+    // Create user-specific data structure
+    const userData = {
+        linkedinUsername: username,
+        linkedinPassword: req.body.password,
+        noOfRandomPosts: req.body.randomPosts,
+        noOfCompanyPosts: req.body.companyPosts,
+        companies: req.body.companies.split(',').map((company: string) => company.trim().replace(/"/g, ''))
+    };
 
-        // Store the companies in the JSON data file
-        const fs = require('fs');
-        const mainData = { companies: companies.map((name: string) => ({ name })) };
-        fs.writeFileSync('./data/main-data.json', JSON.stringify(mainData, null, 2));
+    // Save user data to a JSON file, named after the sanitized username
+    fs.writeFileSync(`./data/${sanitizedUsername}-data.json`, JSON.stringify(userData, null, 2));
 
-        // Trigger the bot script
-        exec(`ts-node index.ts > ${req.body.username.split('@')[0]}-logs.log 2>&1`, (err, stdout, stderr) => {
-            if (err) {
-                console.error(`Error executing script: ${stderr}`);
-                res.status(500).send('Error starting the bot');
-                return;
-            }
-            console.log(stdout);
-            res.send(`Bot successfully completed the operations! Check the ${req.body.username.split('@')[0]}-logs.log for more details.`);
-        });
-    } else {
-        res.status(400).send('Missing LinkedIn credentials');
-    }
+    // Trigger the bot script with the user-specific data file
+    exec(`ts-node index.ts ${sanitizedUsername} > logs/${sanitizedUsername}-logs.log 2>&1`, (err, stdout, stderr) => {
+        if (err) {
+            console.error(`Error executing script: ${stderr}`);
+            res.status(500).send('Error starting the bot');
+            return;
+        }
+        console.log(stdout);
+        res.send(`Bot started successfully! Logs will be saved in ${sanitizedUsername}-logs.log`);
+    });
 });
 
 // Start the Express server

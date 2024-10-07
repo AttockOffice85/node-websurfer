@@ -9,10 +9,23 @@ import dotenv from 'dotenv';
 import { Company } from './scripts/types';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
 
-import mainData from './data/main-data.json';
-const companies: Company[] = mainData.companies;
-const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
-const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
+// Load user data from the correct file
+const sanitizedUsername = process.argv[2]; // Get sanitizedUsername from command line argument
+const userDataPath = path.join(__dirname, 'data', `${sanitizedUsername}-data.json`);
+
+// Read the user's data file
+if (!fs.existsSync(userDataPath)) {
+    throw new Error(`User data file for ${sanitizedUsername} not found.`);
+}
+
+const userData = JSON.parse(fs.readFileSync(userDataPath, 'utf-8'));
+
+// Extract user-specific data
+const companies = userData.companies;
+const linkedInUsername = userData.linkedinUsername;
+const linkedInPassword = userData.linkedinPassword;
+const noOfRandomPostsToReact = userData.noOfRandomPosts ? parseInt(userData.noOfRandomPosts) : 3;
+const noOfCompanyPosts = userData.noOfCompanyPosts ? parseInt(userData.noOfCompanyPosts) : 3;
 
 // Load environment variables from .env file
 dotenv.config();
@@ -24,9 +37,6 @@ interface BrowserProfile {
     theme: string;
     // Add other profile preferences as needed
 }
-
-const linkedInUsername: string | undefined = process.env.LINKEDIN_USERNAME;
-const linkedInPassword: string | undefined = process.env.LINKEDIN_PASSWORD;
 
 class BrowserProfileManager {
     private baseDir: string;
@@ -82,10 +92,10 @@ async function main() {
 
     const page: Page = await browser.newPage();
 
-    await page.setViewport({
-        width: 1920,
-        height: 1080,
-    });
+    // await page.setViewport({
+    //     width: 1920,
+    //     height: 1080,
+    // });
 
     // Login
     await page.goto(loginUrl);
@@ -104,7 +114,9 @@ async function main() {
         await typeWithHumanLikeSpeed(page, '#password', linkedInPassword);
 
         await page.click('.login__form_action_container button');
-        await page.waitForNavigation();
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+        await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
         console.log("Login successful. Proceeding to home page.");
     } else {
@@ -122,9 +134,9 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     for (const company of companies) {
-        console.log("Company: ", company.name);
+        console.log("Company: ", company);
         if (company) {
-            await performLinkedInSearchAndLike(page, company.name);
+            await performLinkedInSearchAndLike(page, company.name, noOfCompanyPosts);
         }
         // Wait for a random delay between each iteration to simulate human behavior
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));

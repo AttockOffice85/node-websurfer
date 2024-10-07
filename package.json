@@ -4,6 +4,8 @@
   "description": "a surffing application to crawl into linkedin and other social platform and interact with posts and sections",
   "main": "dist/index.js",
   "scripts": {
+    "start-frontend": "ts-node server.ts",
+    "start-bot": "ts-node index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "npm run build && node dist/index.js > console-logs.log",
@@ -28,12 +30,16 @@
   },
   "homepage": "https://github.com/AttockOffice85/node-websurfer#readme",
   "dependencies": {
+    "body-parser": "^1.20.3",
     "dotenv": "^16.4.5",
+    "express": "^4.21.0",
     "puppeteer": "^23.4.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/express": "^5.0.0",
     "@types/puppeteer": "^5.4.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.2"

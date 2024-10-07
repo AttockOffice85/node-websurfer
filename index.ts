@@ -11,6 +11,8 @@ import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLi
 
 import mainData from './data/main-data.json';
 const companies: Company[] = mainData.companies;
+const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
+const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
 
 // Load environment variables from .env file
 dotenv.config();
@@ -114,8 +116,9 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     await performHumanActions(page);
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-    await likeRandomPosts(page, 5);
+    await likeRandomPosts(page, noOfRandomPostsToReact);
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     for (const company of companies) {
@@ -129,19 +132,7 @@ async function main() {
         await page.goto(homePageUrl);
     }
 
-    if (customUrl) {
-        // Visit custom URL and like posts
-        await page.goto(customUrl);
-        await likeRandomPosts(page, 5);
-    } else {
-        // performLinkedInUserSearchAndConnect(page, "Sajid Usman The Redstone AI");
-        // performLinkedInUserSearchAndConnect(page, "Muhammad Waqas The Redstone AI");
-        // performLinkedInUserSearchAndConnect(page, "Ahsan ayaz SyNet Digital");
-        console.log("user search here...");
-    }
-
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 6000));
-
 
     await browser.close();
 }

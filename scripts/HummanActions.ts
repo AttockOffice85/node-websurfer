@@ -1,12 +1,15 @@
 import { Page } from 'puppeteer';
 
+const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
+const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
+
 export async function performHumanActions(page: Page) {
     // Wait on the page for a random time between 2 to 5 seconds
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
 
     // Scroll the page
     await page.evaluate(() => {
-        window.scrollBy(0, Math.random() * 500);
+        window.scrollBy(0, Math.random() * 350);
     });
 
     // Wait again
@@ -103,6 +106,8 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
     for (const button of selected) {
         // Scroll the button into view
         await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string; }) => any; }) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
 
         // Click the button
         await button.click();
@@ -220,18 +225,18 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
 
         // Step 7: Hover over the like button to trigger the reactions menu
         await button.hover();
-        
+
         // Wait for the reactions menu to become visible (adjust selector as necessary)
         await page.waitForSelector('.reactions-menu--active', { visible: true });
 
         // Step 8: Select a reaction to click
         // Assuming the first reaction is the "Like", second is "Celebrate", etc.
         const reactions = await page.$$('.reactions-menu--active button');
-        
+
         if (reactions.length > 0) {
             // Choose a random reaction (adjust as per your needs, here we're selecting the first one)
-            const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-            
+            const randomReaction = reactions[Math.floor(Math.random() * (reactions.length - 1))];
+
             // Click the reaction
             await randomReaction.click();
         }
@@ -266,7 +271,7 @@ async function goToAndLikeCompanyPosts(page: Page) {
 
         // Like posts after navigating to the "Posts" section
         // await likeRandomPosts(page, 1);
-        await likeRandomPostsWithReactions(page, 1);
+        await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact);
     } else {
         console.log('Posts tab not found on company page');
     }

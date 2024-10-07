@@ -1,5 +1,7 @@
 import { Page } from 'puppeteer';
 import { sendContentToGPT } from './BusinessLogics';
+const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
+const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
 
 export async function performHumanActions(page: Page) {
     // Wait on the page for a random time between 2 to 5 seconds
@@ -176,153 +178,6 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
 
 }
 
-export async function likeRandomPostsWithReactions(page: Page, count: number): Promise<void> {
-    let likeButtons: any[] = [];
-    let previousHeight = 0;
-
-    // Step 1: Continuously scroll and gather "like" buttons until enough are found or no more content is loaded
-    while (likeButtons.length < count) {
-        likeButtons = await page.$$('.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]');
-
-        if (likeButtons.length >= count) {
-            console.log(`Found enough unliked posts (${likeButtons.length} available).`);
-            break;
-        }
-
-        console.log(`Found ${likeButtons.length} unliked posts so far. Scrolling down to load more posts...`);
-
-        previousHeight = await page.evaluate(() => document.body.scrollHeight);
-        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const newHeight = await page.evaluate(() => document.body.scrollHeight);
-        if (newHeight === previousHeight) {
-            console.log('Reached the bottom of the page, no more posts to load.');
-            break;
-        }
-    }
-
-    // Shuffle the buttons to randomize the selection
-    // const shuffled = likeButtons.sort(() => 0.5 - Math.random());
-    // const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
-    const selected = likeButtons.sort(() => 0.5 - Math.random());
-
-    for (const button of selected) {
-        await button.evaluate((b: HTMLElement) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-
-        // Step 2: Handle "see more" button to load full post content
-        try {
-            const seeMoreButton = await button.$('.feed-shared-inline-show-more-text__see-more-less-toggle');
-            if (seeMoreButton) {
-                await seeMoreButton.click();
-                console.log('Clicked "see more" to reveal full post content.');
-            }
-        } catch (error) {
-            console.error('Error clicking "see more" button:', error);
-        }
-
-        // Step 3: Extract post content as complete HTML
-        const postHTML = await button.evaluate(() => {
-            const descriptionWrapper = document.querySelector('.feed-shared-update-v2__description-wrapper');
-            if (descriptionWrapper) {
-                // Return plain text content with proper punctuation
-                return descriptionWrapper?.textContent?.trim();
-            }
-            return '';
-        });
-
-        const commentButton = await page.$('button[aria-label="Comment"]');
-        if (commentButton) {
-            commentButton.click();
-        }
-
-        // Random delay between actions
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
-
-        // Step 4: Extract comments from the post
-        const comments = await page.evaluate(() => {
-            const commentElements = document.querySelectorAll('.feed-shared-inline-show-more-text.comments-comment-item__inline-show-more-text span[dir="ltr"]');
-            const extractedComments: string[] = [];
-            commentElements.forEach(commentElement => {
-                if (commentElement.textContent) {
-                    extractedComments.push(commentElement.textContent.trim());
-                }
-            });
-            // Return the first 5 comments or fewer if not enough comments exist
-            return extractedComments.slice(0, 5);
-        });
-
-        console.log("Extracted comments: ", comments);
-
-        if (postHTML) {
-            // Step 5: Send content and comments to GPT-4 and get the response
-            const { comment, reaction } = await sendContentToGPT(postHTML, comments);
-            console.log('Generated Comment:', comment);
-            console.log('Suggested Reaction:', reaction);
-
-            // Step 6: Hover over the like button to trigger reactions menu
-            await button.hover();
-            await page.waitForSelector('.reactions-menu--active', { visible: true });
-
-            // Step 7: Select reaction based on GPT-4 suggestion
-            const reactionMapping: { [key: string]: string } = {
-                like: 'React Like',
-                love: 'React Love',
-                support: 'React Support',
-                insightful: 'React Insightful',
-                funny: 'React Funny'
-            };
-
-            const reactions = await page.$$('.reactions-menu--active button');
-            const reactionLabel = reactionMapping[reaction.toLowerCase()];
-
-            if (reactionLabel && reactions) {
-                const reactionButton = await page.$(`.reactions-menu--active button[aria-label="${reactionLabel}"]`);
-                if (reactionButton) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 800));
-                    await reactionButton.click();
-                    console.log(`Applied reaction: ${reaction}`);
-                } else {
-                    console.log(`Failed to find the button for the reaction: ${reactionLabel}`);
-                }
-            } else {
-                console.log('Invalid reaction from GPT-4.');
-            }
-
-            // Random delay between actions
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
-
-            // Step 8: Insert comment into the input field
-            const commentBoxSelector = '.comments-comment-box--cr .editor-content.ql-container';
-            const commentBox = await page.$(commentBoxSelector);
-
-            if (commentBox) {
-                await commentBox.click(); // Click to focus the comment box
-
-                // Type comment with human-like speed
-                await typeWithHumanLikeSpeed(page, commentBoxSelector, comment);
-
-                console.log(`Inserted comment: ${comment}`);
-
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 400));
-
-                // Submit button within the comment box
-                const submitButton = await page.$('.comments-comment-box__submit-button--cr');
-                if (submitButton) {
-                    await submitButton.click();
-                    console.log('Submitted the comment.');
-                } else {
-                    console.log('Submit button not found.');
-                }
-            } else {
-                console.log('Comment box not found.');
-            }
-        }
-    }
-
-    console.log(`Successfully reacted to ${selected.length} posts.`);
-}
-
 // Function to like posts on the company's "Posts" page
 async function goToAndLikeCompanyPosts(page: Page) {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
@@ -344,23 +199,22 @@ async function goToAndLikeCompanyPosts(page: Page) {
         // Optionally, wait a bit for the posts to load
         await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
 
+        console.log("noOfCompanyPostsToReact:: ", noOfCompanyPostsToReact);
         // Like posts after navigating to the "Posts" section
-        // await likeRandomPosts(page, 1);
-        // await likeRandomPostsWithReactions(page, 5);
-        await likeRandomPostsWithReactions2(page, 2);
+        await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact);
     } else {
         console.log('Posts tab not found on company page');
     }
 }
 
-export async function likeRandomPostsWithReactions2(page: Page, count: number): Promise<void> {
+export async function likeRandomPostsWithReactions(page: Page, count: number): Promise<void> {
     let posts: any[] = [];
     let previousHeight = 0;
 
     // Step 1: Continuously scroll and gather posts until enough are found or no more content is loaded
     while (posts.length < count) {
         const newPosts = await page.$$('.feed-container-theme > .scaffold-finite-scroll > .scaffold-finite-scroll__content > div');
-        console.log("Total Posts Found: ", newPosts.length);        
+        console.log("Total Posts Found: ", newPosts.length);
 
         for (const post of newPosts) {
             const postId = await post.evaluate(el => el.id);
@@ -370,8 +224,10 @@ export async function likeRandomPostsWithReactions2(page: Page, count: number): 
                     posts.push(post);
                 } else {
                     await post.evaluate(el => {
-                        el.remove()
-                        // el.style.border = '1px solid red';
+                        el.style.border = '1px solid red';
+                        setTimeout(() => {
+                            el.remove()
+                        }, 1800)
                     });
                 }
             }

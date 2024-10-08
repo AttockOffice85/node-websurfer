@@ -1,4 +1,5 @@
 import { Page } from 'puppeteer';
+import Logger from './logger';
 
 const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
 const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
@@ -15,7 +16,8 @@ async function waitForElement(page: Page, selector: string, maxRetries: number =
     throw new Error(`Element not found: ${selector} after ${maxRetries} retries`);
 }
 
-export async function performHumanActions(page: Page) {
+export async function performHumanActions(page: Page, logger: Logger) {
+    logger.log('Starting fun:: performHumanActions');
     // Function to wait for a random time
     const wait = async (min: number, max: number) => {
         const time = min + Math.random() * (max - min);
@@ -96,9 +98,12 @@ export async function performHumanActions(page: Page) {
         await selectRandomText(); // Select random text
         await wait(2000, 5000);   // Wait between 2-5 seconds after selecting text
     }
+
+    logger.log('Finished fun:: performHumanActions');
 }
 
-export async function typeWithHumanLikeSpeed(page: Page, selector: string, text: string): Promise<void> {
+export async function typeWithHumanLikeSpeed(page: Page, selector: string, text: string, logger: Logger): Promise<void> {
+    logger.log('Starting fun:: typeWithHumanLikeSpeed');
     return new Promise(async (resolve) => {
         await page.focus(selector);
 
@@ -114,14 +119,12 @@ export async function typeWithHumanLikeSpeed(page: Page, selector: string, text:
                 mistypedText += typoChar;
 
                 await page.type(selector, typoChar, { delay: 50 + Math.random() * 100 });
-                console.log(`Mistyped: ${typoChar}`);
 
                 // Pause to simulate realizing the mistake
                 await new Promise(res => setTimeout(res, 500 + Math.random() * 1000));
 
                 // Simulate backspace to correct the mistake
                 await page.keyboard.press('Backspace');
-                console.log(`Correcting mistake: Backspace`);
             }
 
             // Type the correct character
@@ -130,12 +133,14 @@ export async function typeWithHumanLikeSpeed(page: Page, selector: string, text:
             await new Promise(res => setTimeout(res, Math.random() * 50)); // Random delay between keystrokes
         }
 
-        console.log(`Final typed text: ${mistypedText}`);
         resolve();
     });
+
+    logger.log('Finished fun:: typeWithHumanLikeSpeed');
 }
 
-export async function likeRandomPosts(page: Page, count: number): Promise<void> {
+export async function likeRandomPosts(page: Page, count: number, logger: Logger): Promise<void> {
+    logger.log('Starting fun:: likeRandomPosts');
     let likeButtons: any[] = [];
     let previousHeight = 0;
 
@@ -143,8 +148,6 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
         const time = min + Math.random() * (max - min);
         await new Promise(resolve => setTimeout(resolve, time));
     };
-
-    console.log(`likeRandomPosts:: Starting the process to like ${count} posts...`);
 
     // Step 1: Continuously scroll, simulate reading, and gather "Like" buttons
     while (likeButtons.length < count) {
@@ -156,11 +159,9 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
 
         const availableCount = likeButtons.length;
         if (availableCount >= count) {
-            console.log(`likeRandomPosts:: Found enough unliked posts (${availableCount} available).`);
+            logger.log(`likeRandomPosts::> Found enough unliked posts (${availableCount} available).`);
             break;
         }
-
-        // console.log(`likeRandomPosts:: Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
 
         // Step 2: Scroll down to load more posts and simulate reading
         previousHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -170,7 +171,7 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
         // Step 3: Check if the page has more content to load
         const newHeight = await page.evaluate(() => document.body.scrollHeight);
         if (newHeight === previousHeight) {
-            console.log("likeRandomPosts:: Reached the bottom of the page, no more posts to load.");
+            logger.log("likeRandomPosts::> Reached the bottom of the page, no more posts to load.");
             break;
         }
     }
@@ -181,8 +182,6 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
     // Step 5: Select up to 'count' buttons
     const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
 
-    // console.log(`Starting to like ${selected.length} posts...`);
-
     // Step 6: Scroll to each post, simulate reading, and click "Like"
     for (const button of selected) {
         // Scroll the button into view and simulate reading
@@ -190,21 +189,19 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
             b.scrollIntoView({ behavior: 'smooth', block: 'center' })
         );
 
-        // console.log("Simulating reading post...");
         await wait(5000, 12000); // Simulate reading for 5-12 seconds
 
         // Click the "Like" button
-        console.log("Liking post...");
         await button.click();
 
         // Introduce a random delay after clicking "Like"
         await wait(3000, 8000); // Wait 3-8 seconds before moving to the next post
     }
-
-    console.log(`likeRandomPosts:: Successfully liked ${selected.length} posts.`);
+    logger.log('Finished fun:: likeRandomPosts');
 }
 
-export async function performLinkedInSearchAndLike(page: Page, searchQuery: string) {
+export async function performLinkedInSearchAndLike(page: Page, searchQuery: string, logger: Logger) {
+    logger.log('Starting fun:: performLinkedInSearchAndLike');
     // Wait for search input to be available
     await waitForElement(page, '[data-view-name="search-global-typeahead-input"]');
 
@@ -216,7 +213,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
             await searchButton.click();
             await waitForElement(page, '[data-view-name="search-global-typeahead-input"]', 5, 1000);
         } else {
-            console.log("Couldn't find search input or button");
+            logger.log("performLinkedInSearchAndLike::> Couldn't find search input or button");
             return;
         }
     }
@@ -231,7 +228,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
     // Type search query with human-like speed
-    await typeWithHumanLikeSpeed(page, '[data-view-name="search-global-typeahead-input"]', searchQuery);
+    await typeWithHumanLikeSpeed(page, '[data-view-name="search-global-typeahead-input"]', searchQuery, logger);
 
     // Press Enter and wait for navigation
     await page.keyboard.press('Enter');
@@ -257,13 +254,15 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         await page.waitForNavigation();
 
         // Navigate to the company's "Posts" tab and like posts
-        await goToAndLikeCompanyPosts(page);
+        await goToAndLikeCompanyPosts(page, logger);
     } else {
-        console.log("No company links found.");
+        logger.log("performLinkedInSearchAndLike::> No company links found.");
     }
+    logger.log('Finished fun:: performLinkedInSearchAndLike');
 }
 
-export async function likeRandomPostsWithReactions(page: Page, count: number): Promise<void> {
+export async function likeRandomPostsWithReactions(page: Page, count: number, logger: Logger): Promise<void> {
+    logger.log('Starting fun:: likeRandomPostsWithReactions');
     try {
         let likeButtons: any[] = [];
         let previousHeight = 0;
@@ -278,11 +277,9 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
             const availableCount = likeButtons.length;
 
             if (availableCount >= count) {
-                console.log(`Found enough unliked posts (${availableCount} available).`);
+                logger.log(`likeRandomPostsWithReactions::> Found enough unliked posts (${availableCount} available).`);
                 break;
             }
-
-            console.log(`Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
 
             // Step 2: Scroll to the bottom of the page to load more posts
             previousHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -292,7 +289,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
             // Step 3: Check if we have reached the end of the page
             const newHeight = await page.evaluate(() => document.body.scrollHeight);
             if (newHeight === previousHeight) {
-                console.log("Reached the bottom of the page, no more posts to load.");
+                logger.log("likeRandomPostsWithReactions::> Reached the bottom of the page, no more posts to load.");
                 break;
             }
         }
@@ -333,19 +330,19 @@ export async function likeRandomPostsWithReactions(page: Page, count: number): P
             await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 3000));
         }
 
-        console.log(`Successfully reacted to ${selected.length} posts.`);
-
         // Total estimated time calculation
         const totalEstimatedTime = selected.length * (3 + Math.random() * 3) + (selected.length * 3);
-        console.log(`Estimated time to complete: ${totalEstimatedTime / 60} minutes`);
+        logger.log(`likeRandomPostsWithReactions::> Successfully reacted to ${selected.length} posts. Estimated time taken: ${totalEstimatedTime / 60} minutes`);
 
     } catch (error) {
-        console.log("Error in likeRandomPostsWithReactions: ", error);
+        logger.log(`likeRandomPostsWithReactions::> Error: ${String(error)}`);
     }
+    logger.log('Finished fun:: likeRandomPostsWithReactions');
 }
 
 // Function to like posts on the company's "Posts" page
-async function goToAndLikeCompanyPosts(page: Page) {
+async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
+    logger.log('Starting fun:: goToAndLikeCompanyPosts');
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     // Find the "Posts" section in the navigation bar
     const postsTab = await waitForElement(page, 'ul.org-page-navigation__items a[href*="/posts/"]', 5, 1000);
@@ -353,11 +350,12 @@ async function goToAndLikeCompanyPosts(page: Page) {
         await postsTab.click();
         await page.waitForNavigation();
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-        await performHumanActions(page);
+        await performHumanActions(page, logger);
         await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
         // Like posts
-        await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact);
+        await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact, logger);
     } else {
-        console.log("Couldn't find the 'Posts' tab.");
+        logger.log("goToAndLikeCompanyPosts::> Couldn't find the 'Posts' tab.");
     }
+    logger.log('Finished fun:: goToAndLikeCompanyPosts');
 }

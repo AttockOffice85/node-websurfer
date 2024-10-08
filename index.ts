@@ -7,6 +7,7 @@ import { Browser, Page } from 'puppeteer';
 
 import { Company } from './scripts/types';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
+import Logger from './scripts/logger';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -57,6 +58,9 @@ class BrowserProfileManager {
 }
 
 async function runBot(user: any) {
+    const logger = new Logger(user.username);
+    logger.log(`Starting bot for user: ${user.username}`);
+
     const profileManager = new BrowserProfileManager();
     const userProfile: BrowserProfile = {
         name: user.username.split('@')[0],
@@ -83,6 +87,7 @@ async function runBot(user: any) {
     });
 
     // Login
+    logger.log('Navigating to login page');
     await page.goto(loginUrl);
 
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
@@ -91,55 +96,50 @@ async function runBot(user: any) {
     const isLoginPage = await page.$('#username');
 
     if (isLoginPage) {
-        console.log("User is not logged in. Proceeding with login...");
-
-        // Type credentials with human-like speed
-        await typeWithHumanLikeSpeed(page, '#username', user.username);
+        logger.log("User is not logged in. Proceeding with login...");
+        await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-        await typeWithHumanLikeSpeed(page, '#password', user.password);
+        await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
 
         await page.click('.login__form_action_container button');
         await page.waitForNavigation();
 
-        console.log("Login successful. Proceeding to home page.");
+        logger.log('Login successful');
     } else {
-        console.log("User is already logged in. Skipping login step...");
+        logger.log('User already logged in');
     }
 
     while (true) {
-
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-        await performHumanActions(page);
+        logger.log('Performing human-like actions');
+        await performHumanActions(page, logger);
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-        await likeRandomPosts(page, noOfRandomPostsToReact);
+        logger.log(`Liking ${noOfRandomPostsToReact} random posts`);
+        await likeRandomPosts(page, noOfRandomPostsToReact, logger);
 
         for (const company of companies) {
-            console.log("Company: ", company.name);
+            logger.log(`Searching for company: ${company.name}`);
             if (company) {
-                await performLinkedInSearchAndLike(page, company.name);
+                await performLinkedInSearchAndLike(page, company.name, logger);
             }
-            // Wait for a random delay between each iteration to simulate human behavior1
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
-            // Go to home page and like posts
+            logger.log('Navigating to home page');
             await page.goto(homePageUrl);
 
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-            await performHumanActions(page);
+            await performHumanActions(page, logger);
         }
-
     }
 
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
     await browser.close();
+    logger.log(`Session ended for ${user.username} bot.`);
 }
 
 async function main() {
-    // Get the total number of bots to run
     const botsToRun = Math.min(noOfBots, users.length);
-
-    // Run bots concurrently using Promise.all
     const botPromises = users.slice(0, botsToRun).map((user: any) => runBot(user));
 
     await Promise.all(botPromises);

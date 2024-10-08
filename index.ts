@@ -105,26 +105,30 @@ async function runBot(user: any) {
     } else {
         console.log("User is already logged in. Skipping login step...");
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-    await performHumanActions(page);
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-    await likeRandomPosts(page, noOfRandomPostsToReact);
-
-    for (const company of companies) {
-        console.log("Company: ", company.name);
-        if (company) {
-            await performLinkedInSearchAndLike(page, company.name);
-        }
-        // Wait for a random delay between each iteration to simulate human behavior1
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
-        // Go to home page and like posts
-        await page.goto(homePageUrl);
+    while (true) {
 
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
         await performHumanActions(page);
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+        await likeRandomPosts(page, noOfRandomPostsToReact);
+
+        for (const company of companies) {
+            console.log("Company: ", company.name);
+            if (company) {
+                await performLinkedInSearchAndLike(page, company.name);
+            }
+            // Wait for a random delay between each iteration to simulate human behavior1
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
+            // Go to home page and like posts
+            await page.goto(homePageUrl);
+
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+            await performHumanActions(page);
+        }
+
     }
 
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));

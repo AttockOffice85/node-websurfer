@@ -1,0 +1,14 @@
+{
+    "users": [
+        {
+            "username": "afaq.ahmed10009@gmail.com",
+            "password": "--------",
+            "huggingFaceApiKey": "your-hugging-face-api-key2"
+        },
+        {
+            "username": "attockofficeworkonly@gmail.com",
+            "password": "--------",
+            "huggingFaceApiKey": "your-hugging-face-api-key1"
+        }
+    ]
+}

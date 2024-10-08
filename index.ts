@@ -1,21 +1,25 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { Browser, Page } from 'puppeteer';
 import dotenv from 'dotenv';
+import { Browser, Page } from 'puppeteer';
 
 import { Company } from './scripts/types';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
 
-import mainData from './data/main-data.json';
-const companies: Company[] = mainData.companies;
-const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
-const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
-
 // Load environment variables from .env file
 dotenv.config();
+
+// Load users from users.json
+const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
+const users = usersData.users;
+
+import companiesData from './data/comapnies-data.json';
+const companies: Company[] = companiesData.companies;
+const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
+const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
+const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
 
 puppeteer.use(StealthPlugin());
 
@@ -24,9 +28,6 @@ interface BrowserProfile {
     theme: string;
     // Add other profile preferences as needed
 }
-
-const linkedInUsername: string | undefined = process.env.LINKEDIN_USERNAME;
-const linkedInPassword: string | undefined = process.env.LINKEDIN_PASSWORD;
 
 class BrowserProfileManager {
     private baseDir: string;
@@ -55,15 +56,10 @@ class BrowserProfileManager {
     }
 }
 
-async function main() {
-    if (!linkedInUsername || !linkedInPassword) {
-        console.log("LinkedIn credentials are missing");
-        return;
-    }
-
+async function runBot(user: any) {
     const profileManager = new BrowserProfileManager();
     const userProfile: BrowserProfile = {
-        name: linkedInUsername.split('@')[0],
+        name: user.username.split('@')[0],
         theme: 'dark',
         // Add other preferences as needed
     };
@@ -72,7 +68,6 @@ async function main() {
 
     const loginUrl = 'https://www.linkedin.com/login';
     const homePageUrl = 'https://www.linkedin.com/feed/';
-    const customUrl = 'https://www.linkedin.com/custom/page';
 
     const browser: Browser = await puppeteer.launch({
         headless: false,
@@ -83,7 +78,7 @@ async function main() {
     const page: Page = await browser.newPage();
 
     await page.setViewport({
-        width: 1920,
+        width: 1200,
         height: 1080,
     });
 
@@ -99,9 +94,9 @@ async function main() {
         console.log("User is not logged in. Proceeding with login...");
 
         // Type credentials with human-like speed
-        await typeWithHumanLikeSpeed(page, '#username', linkedInUsername);
+        await typeWithHumanLikeSpeed(page, '#username', user.username);
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-        await typeWithHumanLikeSpeed(page, '#password', linkedInPassword);
+        await typeWithHumanLikeSpeed(page, '#password', user.password);
 
         await page.click('.login__form_action_container button');
         await page.waitForNavigation();
@@ -110,31 +105,41 @@ async function main() {
     } else {
         console.log("User is already logged in. Skipping login step...");
     }
-
-    // Go to home page and like posts
-    // await page.goto(homePageUrl); // no need as the user will be redirected to homepage automatically. 
+    
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     await performHumanActions(page);
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     await likeRandomPosts(page, noOfRandomPostsToReact);
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
     for (const company of companies) {
         console.log("Company: ", company.name);
         if (company) {
             await performLinkedInSearchAndLike(page, company.name);
         }
-        // Wait for a random delay between each iteration to simulate human behavior
+        // Wait for a random delay between each iteration to simulate human behavior1
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
         // Go to home page and like posts
         await page.goto(homePageUrl);
+
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+        await performHumanActions(page);
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 6000));
-
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
     await browser.close();
+}
+
+async function main() {
+    // Get the total number of bots to run
+    const botsToRun = Math.min(noOfBots, users.length);
+
+    // Run bots concurrently using Promise.all
+    const botPromises = users.slice(0, botsToRun).map((user: any) => runBot(user));
+
+    await Promise.all(botPromises);
+    console.log(`${botsToRun} bots have finished running.`);
 }
 
 main().catch(console.error);

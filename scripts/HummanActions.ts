@@ -3,6 +3,18 @@ import { Page } from 'puppeteer';
 const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
 const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
 
+// Utility function to wait for an element to appear with retries
+async function waitForElement(page: Page, selector: string, maxRetries: number = 5, delay: number = 1000) {
+    for (let i = 0; i < maxRetries; i++) {
+        const element = await page.$(selector);
+        if (element) {
+            return element;
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    throw new Error(`Element not found: ${selector} after ${maxRetries} retries`);
+}
+
 export async function performHumanActions(page: Page) {
     // Wait on the page for a random time between 2 to 5 seconds
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
@@ -120,15 +132,18 @@ export async function likeRandomPosts(page: Page, count: number): Promise<void> 
 }
 
 export async function performLinkedInSearchAndLike(page: Page, searchQuery: string) {
+    // Wait for search input to be available
+    await waitForElement(page, '[data-view-name="search-global-typeahead-input"]');
+
     // Check if the search input is directly available
     const searchInput = await page.$('[data-view-name="search-global-typeahead-input"]');
 
     if (!searchInput) {
         // If not, look for the search button and click it
-        const searchButton = await page.$('#global-nav-search');
+        const searchButton = await waitForElement(page, '#global-nav-search');
         if (searchButton) {
             await searchButton.click();
-            await page.waitForSelector('[data-view-name="search-global-typeahead-input"]', { visible: true });
+            await waitForElement(page, '[data-view-name="search-global-typeahead-input"]', 5, 1000);
         } else {
             console.log("Couldn't find search input or button");
             return;
@@ -165,7 +180,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     }
 
     // Now check if the relevant results are displayed
-    const companyLink = await page.$('div[data-view-name="search-entity-result-universal-template"] a.app-aware-link');
+    const companyLink = await waitForElement(page, 'div[data-view-name="search-entity-result-universal-template"] a.app-aware-link', 5, 1000);
 
     if (companyLink) {
         await companyLink.click();
@@ -180,99 +195,93 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
 }
 
 export async function likeRandomPostsWithReactions(page: Page, count: number): Promise<void> {
-    let likeButtons: any[] = [];
-    let previousHeight = 0;
+    try {
+        let likeButtons: any[] = [];
+        let previousHeight = 0;
 
-    // Step 1: Continuously scroll and gather "like" buttons until enough are found or no more content is loaded
-    while (likeButtons.length < count) {
-        // Select all unliked "like" buttons from the feed-shared-social-action-bar elements
-        likeButtons = await page.$$(
-            '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
-        );
+        // Step 1: Continuously scroll and gather "like" buttons until enough are found or no more content is loaded
+        while (likeButtons.length < count) {
+            // Select all unliked "like" buttons from the feed-shared-social-action-bar elements
+            likeButtons = await page.$$(
+                '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
+            );
 
-        const availableCount = likeButtons.length;
+            const availableCount = likeButtons.length;
 
-        if (availableCount >= count) {
-            console.log(`Found enough unliked posts (${availableCount} available).`);
-            break;
+            if (availableCount >= count) {
+                console.log(`Found enough unliked posts (${availableCount} available).`);
+                break;
+            }
+
+            console.log(`Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
+
+            // Step 2: Scroll to the bottom of the page to load more posts
+            previousHeight = await page.evaluate(() => document.body.scrollHeight);
+            await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds to load more posts
+
+            // Step 3: Check if we have reached the end of the page
+            const newHeight = await page.evaluate(() => document.body.scrollHeight);
+            if (newHeight === previousHeight) {
+                console.log("Reached the bottom of the page, no more posts to load.");
+                break;
+            }
         }
 
-        console.log(`Found ${availableCount} unliked posts so far. Scrolling down to load more posts...`);
+        // Step 4: Shuffle the buttons to randomize the selection
+        const shuffled = likeButtons.sort(() => 0.5 - Math.random());
 
-        // Step 2: Scroll to the bottom of the page to load more posts
-        previousHeight = await page.evaluate(() => document.body.scrollHeight);
-        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds to load more posts
+        // Step 5: Select up to 'count' number of buttons, or fewer if there aren't enough
+        const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
 
-        // Step 3: Check if we have reached the end of the page
-        const newHeight = await page.evaluate(() => document.body.scrollHeight);
-        if (newHeight === previousHeight) {
-            console.log("Reached the bottom of the page, no more posts to load.");
-            break;
+        // Step 6: Iterate over the selected buttons and apply reactions
+        for (const button of selected) {
+            // Scroll the button into view
+            await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string; }) => any; }) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+
+            // Step 7: Hover over the like button to trigger the reactions menu
+            await button.hover();
+            await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 400));
+
+            // Wait for the reactions menu to become visible (adjust selector as necessary)
+            await page.waitForSelector('.reactions-menu--active', { visible: true });
+
+            // Step 8: Select a reaction to click
+            // Assuming the first reaction is the "Like", second is "Celebrate", etc.
+            const reactions = await page.$$('.reactions-menu--active button');
+
+            if (reactions.length > 0) {
+                // Choose a random reaction (adjust as per your needs, here we're selecting the first one)
+                const randomReaction = reactions[Math.floor(Math.random() * (reactions.length - 1))];
+
+                // Click the reaction
+                await randomReaction.click();
+            }
+
+            // Step 9: Introduce a random delay (between 1 and 5 seconds) after each action
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
         }
+
+        console.log(`Successfully reacted to ${selected.length} posts.`);
+
+    } catch (error) {
+        console.log("Error likeRandomPostsWithReactions: ", error);
     }
-
-    // Step 4: Shuffle the buttons to randomize the selection
-    const shuffled = likeButtons.sort(() => 0.5 - Math.random());
-
-    // Step 5: Select up to 'count' number of buttons, or fewer if there aren't enough
-    const selected = shuffled.slice(0, Math.min(count, likeButtons.length));
-
-    // Step 6: Iterate over the selected buttons and apply reactions
-    for (const button of selected) {
-        // Scroll the button into view
-        await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string; }) => any; }) => b.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-
-        // Step 7: Hover over the like button to trigger the reactions menu
-        await button.hover();
-
-        // Wait for the reactions menu to become visible (adjust selector as necessary)
-        await page.waitForSelector('.reactions-menu--active', { visible: true });
-
-        // Step 8: Select a reaction to click
-        // Assuming the first reaction is the "Like", second is "Celebrate", etc.
-        const reactions = await page.$$('.reactions-menu--active button');
-
-        if (reactions.length > 0) {
-            // Choose a random reaction (adjust as per your needs, here we're selecting the first one)
-            const randomReaction = reactions[Math.floor(Math.random() * (reactions.length - 1))];
-
-            // Click the reaction
-            await randomReaction.click();
-        }
-
-        // Step 9: Introduce a random delay (between 1 and 5 seconds) after each action
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 4000));
-    }
-
-    console.log(`Successfully reacted to ${selected.length} posts.`);
 }
 
 // Function to like posts on the company's "Posts" page
 async function goToAndLikeCompanyPosts(page: Page) {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     // Find the "Posts" section in the navigation bar
-    const postsTab = await page.$('ul.org-page-navigation__items a[href*="/posts/"]');
-
-    await performHumanActions(page);
-
-    // Scroll to top
-    await page.evaluate(() => {
-        window.scrollBy(0, 0);
-    });
-
+    const postsTab = await waitForElement(page, 'ul.org-page-navigation__items a[href*="/posts/"]', 5, 1000);
     if (postsTab) {
-        // Click the "Posts" tab
         await postsTab.click();
         await page.waitForNavigation();
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
-        // Optionally, wait a bit for the posts to load
-        await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
-
-        // Like posts after navigating to the "Posts" section
-        // await likeRandomPosts(page, 1);
+        // Like posts
         await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact);
     } else {
-        console.log('Posts tab not found on company page');
+        console.log("Couldn't find the 'Posts' tab.");
     }
 }

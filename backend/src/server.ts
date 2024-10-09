@@ -39,9 +39,13 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
 
             // Check for long inactivity (> 1 minutes)
             if (timeSinceLastModification > 60 * 1000) {
-                status = 'Crashed/Inactive';
-                const now = new Date();
-                inactiveSince = formatDate(now);
+                if (lastLine.includes('Error') || lastLine.includes('timeout of') || lastLine.includes('ERROR') || lastLine.includes('Session ended')) {
+                    status = 'Error Detected'; // You can enhance this with error duration tracking
+                    const now = new Date();
+                    inactiveSince = formatDate(now);
+                } else {
+                    status = 'Active'; // No errors found
+                }
             } else {
                 status = 'Active'; // No change but file recently modified
             }

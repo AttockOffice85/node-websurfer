@@ -18,6 +18,7 @@ const users = usersData.users;
 
 import companiesData from './data/companies-data.json';
 const companies: Company[] = companiesData.companies;
+const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
 const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
@@ -74,69 +75,92 @@ async function runBot(user: any) {
     const loginUrl = 'https://www.linkedin.com/login';
     const homePageUrl = 'https://www.linkedin.com/feed/';
 
-    const browser: Browser = await puppeteer.launch({
-        headless: true,
-        userDataDir: browserProfilePath,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    let browser: Browser | null = null;
+    let page: Page | null = null;
 
-    const page: Page = await browser.newPage();
+    try {
+        browser = await puppeteer.launch({
+            headless: headlessBrowser === 'true' ? true : false,
+            userDataDir: browserProfilePath,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
 
-    await page.setViewport({
-        width: 1200,
-        height: 1080,
-    });
+        page = await browser.newPage();
 
-    // Login
-    logger.log('Navigating to login page');
-    await page.goto(loginUrl);
+        await page.setViewport({
+            width: 1200,
+            height: 1080,
+        });
 
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+        // Login
+        logger.log('Navigating to login page');
+        await page.goto(loginUrl);
 
-    // Check if the login form is present
-    const isLoginPage = await page.$('#username');
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-    if (isLoginPage) {
-        logger.log("User is not logged in. Proceeding with login...");
-        await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-        await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
+        // Check if the login form is present
+        const isLoginPage = await page.$('#username');
 
-        await page.click('.login__form_action_container button');
-        await page.waitForNavigation();
-
-        logger.log('Login successful');
-    } else {
-        logger.log('User already logged in');
-    }
-
-    while (true) {
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-        logger.log('Performing human-like actions');
-        await performHumanActions(page, logger);
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-        logger.log(`Liking ${noOfRandomPostsToReact} random posts`);
-        await likeRandomPosts(page, noOfRandomPostsToReact, logger);
-
-        for (const company of companies) {
-            logger.log(`Searching for company: ${company.name}`);
-            if (company) {
-                await performLinkedInSearchAndLike(page, company.name, logger);
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
-            logger.log('Navigating to home page');
-            await page.goto(homePageUrl);
-
+        if (isLoginPage) {
+            logger.log("User is not logged in. Proceeding with login...");
+            await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-            await performHumanActions(page, logger);
-        }
-    }
+            await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
 
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-    await browser.close();
-    logger.log(`Session ended for ${botUserName} bot.`);
+            await page.click('.login__form_action_container button');
+            await page.waitForNavigation();
+
+            logger.log('Login successful');
+        } else {
+            logger.log('User already logged in');
+        }
+
+        const startTime = Date.now();
+
+        while (true) {
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+                await performHumanActions(page, logger);
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+                await likeRandomPosts(page, noOfRandomPostsToReact, logger);
+
+                for (const company of companies) {
+                    logger.log(`Searching for company: ${company.name}`);
+                    if (company) {
+                        await performLinkedInSearchAndLike(page, company.name, logger);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
+                    logger.log('Navigating to home page');
+                    await page.goto(homePageUrl);
+
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                    await performHumanActions(page, logger);
+                }
+            } catch (error) {
+                logger.error(`Error during bot operation: ${error}`);
+                if (error instanceof Error) {
+                    logger.error(`Stack trace: ${error.stack}`);
+                }
+                // Add a short delay before continuing
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+        }
+    } catch (error) {
+        logger.error(`An error occurred in runBot: ${error}`);
+        if (error instanceof Error) {
+            logger.error(`Stack trace: ${error.stack}`);
+        }
+    } finally {
+        if (page) {
+            await page.close();
+        }
+        if (browser) {
+            await browser.close();
+        }
+        logger.log(`Session ended for ${botUserName} bot.`);
+    }
 }
 
 async function main() {

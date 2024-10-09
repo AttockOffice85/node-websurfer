@@ -213,7 +213,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
             await searchButton.click();
             await waitForElement(page, '[data-view-name="search-global-typeahead-input"]', 5, 1000);
         } else {
-            logger.log("performLinkedInSearchAndLike::> Couldn't find search input or button");
+            logger.error("performLinkedInSearchAndLike::> Couldn't find search input or button");
             return;
         }
     }
@@ -256,7 +256,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         // Navigate to the company's "Posts" tab and like posts
         await goToAndLikeCompanyPosts(page, logger);
     } else {
-        logger.log("performLinkedInSearchAndLike::> No company links found.");
+        logger.error("performLinkedInSearchAndLike::> No company links found.");
     }
     logger.log('Finished fun:: performLinkedInSearchAndLike');
 }
@@ -335,7 +335,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
         logger.log(`likeRandomPostsWithReactions::> Successfully reacted to ${selected.length} posts. Estimated time taken: ${totalEstimatedTime / 60} minutes`);
 
     } catch (error) {
-        logger.log(`likeRandomPostsWithReactions::> Error: ${String(error)}`);
+        logger.error(`likeRandomPostsWithReactions::> Error: ${String(error)}`);
     }
     logger.log('Finished fun:: likeRandomPostsWithReactions');
 }
@@ -355,7 +355,7 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
         // Like posts
         await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact, logger);
     } else {
-        logger.log("goToAndLikeCompanyPosts::> Couldn't find the 'Posts' tab.");
+        logger.error("goToAndLikeCompanyPosts::> Couldn't find the 'Posts' tab.");
     }
     logger.log('Finished fun:: goToAndLikeCompanyPosts');
 }

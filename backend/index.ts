@@ -85,7 +85,8 @@ async function runBot(user: any) {
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
 
-        page = await browser.newPage();
+        const pages = await browser.pages();
+        page = pages[0];
 
         await page.setViewport({
             width: 1200,

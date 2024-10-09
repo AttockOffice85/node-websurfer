@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { Browser, Page } from 'puppeteer';
 
 import { Company } from './scripts/types';
-import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HummanActions';
+import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
 
 // Load environment variables from .env file
@@ -16,7 +16,7 @@ dotenv.config();
 const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
 const users = usersData.users;
 
-import companiesData from './data/comapnies-data.json';
+import companiesData from './data/companies-data.json';
 const companies: Company[] = companiesData.companies;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
@@ -58,12 +58,13 @@ class BrowserProfileManager {
 }
 
 async function runBot(user: any) {
-    const logger = new Logger(user.username);
-    logger.log(`Starting bot for user: ${user.username}`);
+    const botUserName = user.username.split('@')[0];
+    const logger = new Logger(botUserName);
+    logger.log(`Starting bot for user: ${botUserName}`);
 
     const profileManager = new BrowserProfileManager();
     const userProfile: BrowserProfile = {
-        name: user.username.split('@')[0],
+        name: botUserName,
         theme: 'dark',
         // Add other preferences as needed
     };
@@ -97,7 +98,7 @@ async function runBot(user: any) {
 
     if (isLoginPage) {
         logger.log("User is not logged in. Proceeding with login...");
-        await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
+        await typeWithHumanLikeSpeed(page, '#username', botUserName, logger);
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
         await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
 
@@ -135,7 +136,7 @@ async function runBot(user: any) {
 
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
     await browser.close();
-    logger.log(`Session ended for ${user.username} bot.`);
+    logger.log(`Session ended for ${botUserName} bot.`);
 }
 
 async function main() {

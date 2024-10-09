@@ -75,7 +75,7 @@ async function runBot(user: any) {
     const homePageUrl = 'https://www.linkedin.com/feed/';
 
     const browser: Browser = await puppeteer.launch({
-        headless: false,
+        headless: true,
         userDataDir: browserProfilePath,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
@@ -98,7 +98,7 @@ async function runBot(user: any) {
 
     if (isLoginPage) {
         logger.log("User is not logged in. Proceeding with login...");
-        await typeWithHumanLikeSpeed(page, '#username', botUserName, logger);
+        await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
         await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
 

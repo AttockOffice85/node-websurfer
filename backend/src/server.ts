@@ -22,71 +22,51 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
         const stats = fs.statSync(logFilePath);
         const currentSize = stats.size;
         const lastSize = lastFileSizes[logFilePath] || 0;
-
         const data = fs.readFileSync(logFilePath, 'utf8');
         const lines = data.split('\n').filter(Boolean);
-
         const lastLine = [...lines].reverse().find(line => /^\[\d{2}-[A-Za-z]{3}-\d{4}:\d{1,2}:\d{2}:\d{2}:(AM|PM)\]/.test(line));
 
-        console.log("lastLine:::", lastLine);
         let status: string;
-        let inactiveSince: string | undefined = botInactiveSince[logFilePath]; // Load previous inactiveSince if it exists
+        let inactiveSince: string | undefined = botInactiveSince[logFilePath];
 
         if (!lastLine) {
             return { status: 'failed', postCount: lines.length };
         }
 
-        // If file size hasn't changed
+        // Check if the file size hasn't changed
         if (currentSize === lastSize) {
             const timeSinceLastModification = Date.now() - stats.mtimeMs;
 
-            // Check for long inactivity (> 1 minute)
-            if (timeSinceLastModification > 60 * 1000) {
-                if (lastLine.includes('Error') || lastLine.includes('timeout of') || lastLine.includes('ERROR') || lastLine.includes('crashed after') || lastLine.includes('Session ended')) {
-                    status = 'Error Detected';
-                    
-                    // Only set inactiveSince if it wasn't set previously (i.e., when the bot first malfunctioned)
-                    if (!inactiveSince) {
-                        const now = new Date();
-                        inactiveSince = formatDate(now);
-                        botInactiveSince[logFilePath] = inactiveSince; // Store the first inactive time
-                    }
-                } else {
-                    status = 'Active'; // No errors found
-                }
-            } else {
-                status = 'Active'; // No change but file recently modified
-            }
-
-        } else if (currentSize > lastSize) {
-            // File is growing, consider it active but check for errors
-            if (lastLine.includes('Error') || lastLine.includes('timeout of') || lastLine.includes('ERROR') || lastLine.includes('Session ended')) {
+            if (timeSinceLastModification > 60 * 1000 && hasError(lastLine)) {
                 status = 'Error Detected';
-
-                // Only set inactiveSince if it wasn't set previously
                 if (!inactiveSince) {
-                    const now = new Date();
-                    inactiveSince = formatDate(now);
-                    botInactiveSince[logFilePath] = inactiveSince;
+                    inactiveSince = updateInactiveSince(logFilePath);
                 }
             } else {
-                status = 'Active'; // No errors found
-                botInactiveSince[logFilePath] = undefined; // Clear inactive time if the bot is active again
+                status = 'Active';
+            }
+        } else if (currentSize > lastSize) {
+            // File is growing
+            if (hasError(lastLine)) {
+                status = 'Error Detected';
+                if (!inactiveSince) {
+                    inactiveSince = updateInactiveSince(logFilePath);
+                }
+            } else {
+                status = 'Active';
+                botInactiveSince[logFilePath] = undefined; // Clear inactive time if the bot is active
             }
 
             // Update the last known size
             lastFileSizes[logFilePath] = currentSize;
 
         } else if (lastLine.includes('Starting')) {
-            status = 'Starting'; // Special case for initialization
+            status = 'Starting';
             botInactiveSince[logFilePath] = undefined; // Clear inactive time during startup
-
         } else {
-            status = 'Unknown'; // Handle cases where no clear status is found
+            status = 'Unknown';
             if (!inactiveSince) {
-                const now = new Date();
-                inactiveSince = formatDate(now);
-                botInactiveSince[logFilePath] = inactiveSince;
+                inactiveSince = updateInactiveSince(logFilePath);
             }
         }
 
@@ -97,6 +77,7 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
         return { status: 'Unknown', postCount: 0 };
     }
 }
+
 
 app.get('/all-bots', (req, res) => {
     const logDir = path.join(__dirname, '..', 'botLogs');
@@ -161,4 +142,14 @@ function formatDate(date: Date): string {
     const formattedHours = String(hours).padStart(2, '0');
 
     return `${dayOfWeek}-${month}-${year} ${formattedHours}:${minutes} ${ampm}`;
+}
+
+function hasError(line: string): boolean {
+    return ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever'].some(error => line.includes(error));
+}
+
+function updateInactiveSince(logFilePath: string): string {
+    const now = formatDate(new Date());
+    botInactiveSince[logFilePath] = now;
+    return now;
 }

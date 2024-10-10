@@ -79,6 +79,7 @@ async function runBot(user: any) {
 
         let browser: Browser | null = null;
         let page: Page | null = null;
+        let stackTraceErrorCount = 0;  // Add a counter for stack trace errors
 
         try {
             browser = await puppeteer.launch({
@@ -118,7 +119,7 @@ async function runBot(user: any) {
 
             const startTime = Date.now();
 
-            while (true) {
+            while (stackTraceErrorCount < 2) { // Changed to break after 2 stack trace errors
                 try {
                     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
@@ -141,28 +142,33 @@ async function runBot(user: any) {
                     }
                 } catch (error) {
                     logger.error(`Error during bot operation: ${error}`);
-                    if (error instanceof Error) {
+                    if (error instanceof Error && error.stack) {
                         logger.error(`Stack trace: ${error.stack}`);
+                        stackTraceErrorCount++;  // Increment the counter when a stack trace error occurs
+                        logger.log(`Stack trace error count: ${stackTraceErrorCount}`);
                     }
                     // Add a short delay before continuing
                     await new Promise(resolve => setTimeout(resolve, 5000));
                 }
             }
+            logger.log(`Breaking forever loop due to ${stackTraceErrorCount} stack trace errors`);
+            if (stackTraceErrorCount === 2) {
+                if (page) {
+                    await page.close();
+                }
+                if (browser) {
+                    await browser.close();
+                }
+            }
         } catch (error) {
-            logger.error(`An error occurred in runBot: ${error}`);
             if (error instanceof Error) {
                 logger.error(`Stack trace: ${error.stack}`);
+            } else {
+                logger.error(`An error occurred in runBot: ${error}`);
             }
-        } finally {
-            if (page) {
-                await page.close();
-            }
-            if (browser) {
-                await browser.close();
-            }
-            logger.log(`Session ended for ${botUserName} bot. Attempting to restart in 30 seconds...`);
-            await new Promise(resolve => setTimeout(resolve, 30000));  // Wait for 30 seconds before restarting
         }
+        logger.log(`Session ended for ${botUserName} bot. Attempting to restart in 30 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 30000));  // Wait for 30 seconds before restarting
         noOfBotsCrashRetry = noOfBotsCrashRetry - 1;
     }
     logger.log(`Bot: ${botUserName} crashed after ${process.env.BOTS_NO_OF_RETRY_CRASH} retries...`);

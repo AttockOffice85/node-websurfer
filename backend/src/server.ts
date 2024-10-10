@@ -14,6 +14,9 @@ app.use(cors());
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
 
+// Assuming we store inactiveSince values globally or higher in the scope
+const botInactiveSince: { [logFilePath: string]: string | undefined } = {};
+
 function getLatestStatus(logFilePath: string): { status: string, postCount: number, inactiveSince?: string } {
     try {
         const stats = fs.statSync(logFilePath);
@@ -23,26 +26,31 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
         const data = fs.readFileSync(logFilePath, 'utf8');
         const lines = data.split('\n').filter(Boolean);
 
-        const lastLine = [...lines].reverse().find(line => /^\[202\d/.test(line));
+        const lastLine = [...lines].reverse().find(line => /^\[\d{2}-[A-Za-z]{3}-\d{4}:\d{1,2}:\d{2}:\d{2}:(AM|PM)\]/.test(line));
 
+        console.log("lastLine:::", lastLine);
         let status: string;
-        let inactiveSince: string | undefined = undefined;
+        let inactiveSince: string | undefined = botInactiveSince[logFilePath]; // Load previous inactiveSince if it exists
 
         if (!lastLine) {
             return { status: 'failed', postCount: lines.length };
         }
 
-
         // If file size hasn't changed
         if (currentSize === lastSize) {
             const timeSinceLastModification = Date.now() - stats.mtimeMs;
 
-            // Check for long inactivity (> 1 minutes)
+            // Check for long inactivity (> 1 minute)
             if (timeSinceLastModification > 60 * 1000) {
-                if (lastLine.includes('Error') || lastLine.includes('timeout of') || lastLine.includes('ERROR') || lastLine.includes('Session ended')) {
-                    status = 'Error Detected'; // You can enhance this with error duration tracking
-                    const now = new Date();
-                    inactiveSince = formatDate(now);
+                if (lastLine.includes('Error') || lastLine.includes('timeout of') || lastLine.includes('ERROR') || lastLine.includes('crashed after') || lastLine.includes('Session ended')) {
+                    status = 'Error Detected';
+                    
+                    // Only set inactiveSince if it wasn't set previously (i.e., when the bot first malfunctioned)
+                    if (!inactiveSince) {
+                        const now = new Date();
+                        inactiveSince = formatDate(now);
+                        botInactiveSince[logFilePath] = inactiveSince; // Store the first inactive time
+                    }
                 } else {
                     status = 'Active'; // No errors found
                 }
@@ -53,11 +61,17 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
         } else if (currentSize > lastSize) {
             // File is growing, consider it active but check for errors
             if (lastLine.includes('Error') || lastLine.includes('timeout of') || lastLine.includes('ERROR') || lastLine.includes('Session ended')) {
-                status = 'Error Detected'; // You can enhance this with error duration tracking
-                const now = new Date();
-                inactiveSince = formatDate(now);
+                status = 'Error Detected';
+
+                // Only set inactiveSince if it wasn't set previously
+                if (!inactiveSince) {
+                    const now = new Date();
+                    inactiveSince = formatDate(now);
+                    botInactiveSince[logFilePath] = inactiveSince;
+                }
             } else {
                 status = 'Active'; // No errors found
+                botInactiveSince[logFilePath] = undefined; // Clear inactive time if the bot is active again
             }
 
             // Update the last known size
@@ -65,11 +79,15 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
 
         } else if (lastLine.includes('Starting')) {
             status = 'Starting'; // Special case for initialization
+            botInactiveSince[logFilePath] = undefined; // Clear inactive time during startup
 
         } else {
             status = 'Unknown'; // Handle cases where no clear status is found
-            const now = new Date();
-            inactiveSince = formatDate(now);
+            if (!inactiveSince) {
+                const now = new Date();
+                inactiveSince = formatDate(now);
+                botInactiveSince[logFilePath] = inactiveSince;
+            }
         }
 
         return { status, postCount: lines.length, inactiveSince };

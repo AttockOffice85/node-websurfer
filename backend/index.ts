@@ -22,6 +22,7 @@ const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
 const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
+let noOfBotsCrashRetry: number = parseInt(process.env.BOTS_NO_OF_RETRY_CRASH || '1');
 
 puppeteer.use(StealthPlugin());
 
@@ -70,98 +71,101 @@ async function runBot(user: any) {
         // Add other preferences as needed
     };
 
-    const browserProfilePath = profileManager.createProfile(userProfile);
+    while (noOfBotsCrashRetry !== 0) {  // Infinite loop to keep trying to restart the bot
+        const browserProfilePath = profileManager.createProfile(userProfile);
 
-    const loginUrl = 'https://www.linkedin.com/login';
-    const homePageUrl = 'https://www.linkedin.com/feed/';
+        const loginUrl = 'https://www.linkedin.com/login';
+        const homePageUrl = 'https://www.linkedin.com/feed/';
 
-    let browser: Browser | null = null;
-    let page: Page | null = null;
+        let browser: Browser | null = null;
+        let page: Page | null = null;
 
-    try {
-        browser = await puppeteer.launch({
-            headless: headlessBrowser === 'true' ? true : false,
-            userDataDir: browserProfilePath,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+        try {
+            browser = await puppeteer.launch({
+                headless: headlessBrowser === 'true' ? true : false,
+                userDataDir: browserProfilePath,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
 
-        const pages = await browser.pages();
-        page = pages[0];
+            const pages = await browser.pages();
+            page = pages[0];
 
-        await page.setViewport({
-            width: 1200,
-            height: 1080,
-        });
+            await page.setViewport({
+                width: 1200,
+                height: 1080,
+            });
 
-        // Login
-        logger.log('Navigating to login page');
-        await page.goto(loginUrl);
+            // Login process
+            logger.log('Navigating to login page');
+            await page.goto(loginUrl);
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+            const isLoginPage = await page.$('#username');
 
-        // Check if the login form is present
-        const isLoginPage = await page.$('#username');
-
-        if (isLoginPage) {
-            logger.log("User is not logged in. Proceeding with login...");
-            await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-            await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
-
-            await page.click('.login__form_action_container button');
-            await page.waitForNavigation();
-
-            logger.log('Login successful');
-        } else {
-            logger.log('User already logged in');
-        }
-
-        const startTime = Date.now();
-
-        while (true) {
-            try {
+            if (isLoginPage) {
+                logger.log("User is not logged in. Proceeding with login...");
+                await typeWithHumanLikeSpeed(page, '#username', user.username, logger);
                 await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                await typeWithHumanLikeSpeed(page, '#password', user.password, logger);
 
-                await performHumanActions(page, logger);
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                await page.click('.login__form_action_container button');
+                await page.waitForNavigation();
 
-                await likeRandomPosts(page, noOfRandomPostsToReact, logger);
-
-                for (const company of companies) {
-                    logger.log(`Searching for company: ${company.name}`);
-                    if (company) {
-                        await performLinkedInSearchAndLike(page, company.name, logger);
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
-                    logger.log('Navigating to home page');
-                    await page.goto(homePageUrl);
-
-                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-                    await performHumanActions(page, logger);
-                }
-            } catch (error) {
-                logger.error(`Error during bot operation: ${error}`);
-                if (error instanceof Error) {
-                    logger.error(`Stack trace: ${error.stack}`);
-                }
-                // Add a short delay before continuing
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                logger.log('Login successful');
+            } else {
+                logger.log('User already logged in');
             }
+
+            const startTime = Date.now();
+
+            while (true) {
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+                    await performHumanActions(page, logger);
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+                    await likeRandomPosts(page, noOfRandomPostsToReact, logger);
+
+                    for (const company of companies) {
+                        logger.log(`Searching for company: ${company.name}`);
+                        if (company) {
+                            await performLinkedInSearchAndLike(page, company.name, logger);
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
+                        logger.log('Navigating to home page');
+                        await page.goto(homePageUrl);
+
+                        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                        await performHumanActions(page, logger);
+                    }
+                } catch (error) {
+                    logger.error(`Error during bot operation: ${error}`);
+                    if (error instanceof Error) {
+                        logger.error(`Stack trace: ${error.stack}`);
+                    }
+                    // Add a short delay before continuing
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+            }
+        } catch (error) {
+            logger.error(`An error occurred in runBot: ${error}`);
+            if (error instanceof Error) {
+                logger.error(`Stack trace: ${error.stack}`);
+            }
+        } finally {
+            if (page) {
+                await page.close();
+            }
+            if (browser) {
+                await browser.close();
+            }
+            logger.log(`Session ended for ${botUserName} bot. Attempting to restart in 30 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 30000));  // Wait for 30 seconds before restarting
         }
-    } catch (error) {
-        logger.error(`An error occurred in runBot: ${error}`);
-        if (error instanceof Error) {
-            logger.error(`Stack trace: ${error.stack}`);
-        }
-    } finally {
-        if (page) {
-            await page.close();
-        }
-        if (browser) {
-            await browser.close();
-        }
-        logger.log(`Session ended for ${botUserName} bot.`);
+        noOfBotsCrashRetry = noOfBotsCrashRetry - 1;
     }
+    logger.log(`Bot: ${botUserName} crashed after ${process.env.BOTS_NO_OF_RETRY_CRASH} retries...`);
 }
 
 async function main() {

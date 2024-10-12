@@ -38,17 +38,17 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
             const timeSinceLastModification = Date.now() - stats.mtimeMs;
 
             if (timeSinceLastModification > 60 * 1000 && hasError(lastLine)) {
-                status = 'Error Detected';
+                status = 'Error...';
                 if (!inactiveSince) {
                     inactiveSince = updateInactiveSince(logFilePath);
                 }
             } else {
-                status = 'Active';
+                status = 'Processing...';
             }
         } else if (currentSize > lastSize) {
             // File is growing
             if (hasError(lastLine)) {
-                status = 'Error Detected';
+                status = 'Error...';
                 if (!inactiveSince) {
                     inactiveSince = updateInactiveSince(logFilePath);
                 }
@@ -64,7 +64,7 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
             status = 'Starting';
             botInactiveSince[logFilePath] = undefined; // Clear inactive time during startup
         } else {
-            status = 'Unknown';
+            status = 'Processing...';
             if (!inactiveSince) {
                 inactiveSince = updateInactiveSince(logFilePath);
             }
@@ -74,7 +74,7 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
 
     } catch (error) {
         console.error(`Error reading log file: ${logFilePath}`, error);
-        return { status: 'Unknown', postCount: 0 };
+        return { status: 'Processing...', postCount: 0 };
     }
 }
 

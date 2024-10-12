@@ -111,13 +111,16 @@ async function runBot(user: any) {
 
                 await page.click('.login__form_action_container button');
                 await page.waitForNavigation();
-
-                logger.log('Login successful');
             } else {
                 logger.log('User already logged in');
             }
 
-            const startTime = Date.now();
+            if (page.url() === homePageUrl) {
+                logger.log('Login successful');
+            } else {
+                logger.log('Login unsuccessful');
+                stackTraceErrorCount = 2;
+            }
 
             while (stackTraceErrorCount < 2) { // Changed to break after 2 stack trace errors
                 try {

@@ -133,8 +133,8 @@ async function runBot(user: any) {
 
                     for (const company of companies) {
                         logger.log(`Searching for company: ${company.name}`);
-                        if (company) {
-                            await performLinkedInSearchAndLike(page, company.name, logger);
+                        if (company && company.link) {
+                            await performLinkedInSearchAndLike(page, company.name, logger, company.link);
                         }
                         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
                         logger.log('Navigating to home page');

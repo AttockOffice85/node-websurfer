@@ -200,7 +200,7 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
     logger.log('Finished fun:: likeRandomPosts');
 }
 
-export async function performLinkedInSearchAndLike(page: Page, searchQuery: string, logger: Logger) {
+export async function performLinkedInSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
     logger.log('Starting fun:: performLinkedInSearchAndLike');
     // Wait for search input to be available
     await waitForElement(page, '[data-view-name="search-global-typeahead-input"]');
@@ -245,8 +245,25 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         }
     }
 
-    // Check for relevant company results
-    const companyLink = await waitForElement(page, 'div[data-view-name="search-entity-result-universal-template"] a.app-aware-link', 5, 1000);
+    // Check for relevant company results and retry if necessary
+    let companyLink = null;
+    let retryAttempts = 0;
+    const maxRetries = 3; // Set a limit for retries
+
+    while (!companyLink && retryAttempts < maxRetries) {
+        companyLink = await waitForElement(page, 'div[data-view-name="search-entity-result-universal-template"] a.app-aware-link', 5, 1000);
+
+        if (companyLink) {
+            // Check if "no results" message is displayed and retry with another link
+            const shouldRetry = await checkCompanyPageResultsAndRetry(page, logger, companyURL);
+            if (shouldRetry) {
+                companyLink = null; // Reset the company link and try again
+                retryAttempts++;
+                logger.log(`Retrying... Attempt ${retryAttempts}/${maxRetries}`);
+            }
+        }
+    }
+
     if (companyLink) {
         // Simulate reading the results before clicking
         await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 5000));
@@ -256,7 +273,7 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         // Navigate to the company's "Posts" tab and like posts
         await goToAndLikeCompanyPosts(page, logger);
     } else {
-        logger.error("performLinkedInSearchAndLike::> No company links found.");
+        logger.error("performLinkedInSearchAndLike::> No company links found after retries.");
     }
     logger.log('Finished fun:: performLinkedInSearchAndLike');
 }
@@ -358,4 +375,16 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
         logger.error("goToAndLikeCompanyPosts::> Couldn't find the 'Posts' tab.");
     }
     logger.log('Finished fun:: goToAndLikeCompanyPosts');
+}
+
+// Function to check if "no results" element is present and retry with another link
+async function checkCompanyPageResultsAndRetry(page: Page, logger: Logger, companyURL: string) {
+    const noResultsElement = await page.$('.search-reusable-search-no-results.artdeco-card.mb2');
+    if (page.url() !== companyURL) {
+        return true; // company link is not matched, should retry
+    } else if (noResultsElement) {
+        logger.log("checkCompanyPageResultsAndRetry::> No results found, trying another link.");
+        return true; // Indicates that the function found "no results" and should retry
+    }
+    return false; // No "no results" element found, so proceed with the current link
 }

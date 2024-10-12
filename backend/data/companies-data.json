@@ -1,10 +1,12 @@
 {
     "companies": [
         {
-            "name": "The Redstone AI"
+            "name": "The Redstone AI",
+            "link": "https://www.linkedin.com/company/theredstoni/"
         },
         {
-            "name": "SyNet Digital"
+            "name": "SyNet Digital",
+            "link": "https://www.linkedin.com/company/synet-digal/"
         }
     ]
 }

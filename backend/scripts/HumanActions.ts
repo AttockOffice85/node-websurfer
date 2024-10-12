@@ -235,35 +235,48 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     await page.waitForNavigation();
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
 
-    // Check for the Companies filter and click it if available
-    const companiesButton = await page.$('div#search-reusables__filters-bar a');
-    if (companiesButton) {
-        const buttonText = await page.evaluate(element => element.textContent, companiesButton);
-        if (buttonText && buttonText.includes("Companies")) {
-            await companiesButton.click();
-            await page.waitForNavigation();
-        }
-    }
+    // Get all buttons inside the filters bar
+    const filtersBarButtons = await page.$$('div#search-reusables__filters-bar button');
 
-    // Check for relevant company results and retry if necessary
-    let companyLink = null;
-    let retryAttempts = 0;
-    const maxRetries = 3; // Set a limit for retries
+    if (filtersBarButtons.length > 0) {
+        for (const button of filtersBarButtons) {
+            // Get the button's text content
+            const buttonText = await page.evaluate(element => element.textContent, button);
 
-    while (!companyLink && retryAttempts < maxRetries) {
-        companyLink = await waitForElement(page, 'div[data-view-name="search-entity-result-universal-template"] a.app-aware-link', 5, 1000);
+            // Introduce a delay for a human-like interaction
+            await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
-        if (companyLink) {
-            // Check if "no results" message is displayed and retry with another link
-            const shouldRetry = await checkCompanyPageResultsAndRetry(page, logger, companyURL);
-            if (shouldRetry) {
-                companyLink = null; // Reset the company link and try again
-                retryAttempts++;
-                logger.log(`Retrying... Attempt ${retryAttempts}/${maxRetries}`);
+            // Check if the button contains "Companies"
+            if (buttonText && buttonText.includes("Companies")) {
+                // Click the button and wait for navigation
+                await button.click();
+                await page.waitForNavigation();
+                break;  // Exit the loop after clicking the desired button
             }
         }
     }
+    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
+    // Check for relevant company results and retry if necessary
+    let companyLink = null;
+    // let retryAttempts = 0;
+    // const maxRetries = 3; // Set a limit for retries
+
+    // while (!companyLink && retryAttempts < maxRetries) {
+    //     companyLink = await waitForElement(page, 'div[data-view-name="search-entity-result-universal-template"] a.app-aware-link', 5, 1000);
+
+    //     if (companyLink) {
+    //         // Check if "no results" message is displayed and retry with another link
+    //         const shouldRetry = await checkCompanyPageResultsAndRetry(page, logger, companyURL);
+    //         if (shouldRetry) {
+    //             companyLink = null; // Reset the company link and try again
+    //             retryAttempts++;
+    //             logger.log(`Retrying... Attempt ${retryAttempts}/${maxRetries}`);
+    //         }
+    //     }
+    // }
+
+    companyLink = await waitForElement(page, 'div[data-view-name="search-entity-result-universal-template"] a.app-aware-link', 5, 1000);
     if (companyLink) {
         // Simulate reading the results before clicking
         await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 5000));

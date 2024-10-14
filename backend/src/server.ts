@@ -3,13 +3,18 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { spawn, ChildProcess } from 'child_process';
 
 dotenv.config();
 
 const app = express();
-const port = process.env.SERVER_PORT || 3000;
+const port = process.env.SERVER_PORT || 8080;
 
 app.use(cors());
+app.use(express.json());
+
+// Store bot processes
+const botProcesses: { [key: string]: ChildProcess } = {};
 
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
@@ -78,7 +83,6 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
     }
 }
 
-
 app.get('/all-bots', (req, res) => {
     const logDir = path.join(__dirname, '..', 'botLogs');
     fs.readdir(logDir, (err, files) => {
@@ -91,7 +95,13 @@ app.get('/all-bots', (req, res) => {
             .map(file => {
                 const botName = file.replace('.log', '');
                 const { status, postCount, inactiveSince } = getLatestStatus(path.join(logDir, file));
-                return { name: botName, status, postCount, inactiveSince };
+                return {
+                    name: botName,
+                    status,
+                    postCount,
+                    inactiveSince,
+                    isRunning: !!botProcesses[botName]
+                };
             });
         res.json(botsStatus);
     });
@@ -112,6 +122,79 @@ app.get('/logs/:username', (req, res) => {
         }
         res.setHeader('Content-Type', 'text/plain');
         res.send(data);
+    });
+});
+
+app.post('/start-bot/:username', (req: any, res: any) => {
+    const { username } = req.params;
+    if (botProcesses[username]) {
+        return res.status(400).json({ message: 'Bot is already running' });
+    }
+
+    const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
+        env: { ...process.env, BOT_USERNAME: username, BOT_PASSWORD: req.body.password }
+    });
+
+    botProcesses[username] = botProcess;
+
+    botProcess.on('close', (code) => {
+        console.log(`Bot ${username} exited with code ${code}`);
+        delete botProcesses[username];
+    });
+
+    res.json({ message: 'Bot started successfully' });
+});
+
+app.post('/stop-bot/:username', (req: any, res: any) => {
+    const { username } = req.params;
+    const botProcess = botProcesses[username];
+
+    if (!botProcess) {
+        return res.status(404).json({ message: 'Bot is not running' });
+    }
+
+    botProcess.kill();
+    delete botProcesses[username];
+
+    res.json({ message: 'Bot stopped successfully' });
+});
+
+app.get('/bot-status/:username', (req, res) => {
+    const { username } = req.params;
+    const logPath = path.join(__dirname, '..', 'botLogs', `${username}.log`);
+    const { status, postCount, inactiveSince } = getLatestStatus(logPath);
+
+    res.json({
+        name: username,
+        status,
+        postCount,
+        inactiveSince,
+        isRunning: !!botProcesses[username]
+    });
+});
+
+app.get('/stream-logs/:username', (req, res) => {
+    const { username } = req.params;
+    const logPath = path.join(__dirname, '..', 'botLogs', `${username}.log`);
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    const sendEvent = (data: string) => {
+        res.write(`data: ${data}\n\n`);
+    };
+
+    const tailProcess = spawn('tail', ['-f', logPath]);
+
+    tailProcess.stdout.on('data', (data) => {
+        sendEvent(data.toString());
+    });
+
+    req.on('close', () => {
+        tailProcess.kill();
     });
 });
 

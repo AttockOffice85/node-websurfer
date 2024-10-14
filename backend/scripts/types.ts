@@ -4,3 +4,9 @@ export interface Company {
     city?: string;
     link?: string;
 }
+
+export interface BrowserProfile {
+    name: string;
+    theme: string;
+    // Add other profile preferences as needed
+}

@@ -1,9 +1,12 @@
+// backend/src/server.ts
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { spawn, ChildProcess } from 'child_process';
+import { startBot } from '../index'; // Import startBot function from index.ts
+import { botProcesses } from './utils';
 
 dotenv.config();
 
@@ -13,13 +16,8 @@ const port = process.env.SERVER_PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Store bot processes
-const botProcesses: { [key: string]: ChildProcess } = {};
-
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
-
-// Assuming we store inactiveSince values globally or higher in the scope
 const botInactiveSince: { [logFilePath: string]: string | undefined } = {};
 
 function getLatestStatus(logFilePath: string): { status: string, postCount: number, inactiveSince?: string } {
@@ -95,13 +93,14 @@ app.get('/all-bots', (req, res) => {
             .map(file => {
                 const botName = file.replace('.log', '');
                 const { status, postCount, inactiveSince } = getLatestStatus(path.join(logDir, file));
-                return {
+                const botInfo = {
                     name: botName,
                     status,
                     postCount,
                     inactiveSince,
-                    isRunning: !!botProcesses[botName]
+                    isRunning: !botProcesses[botName]
                 };
+                return botInfo;
             });
         res.json(botsStatus);
     });
@@ -109,7 +108,7 @@ app.get('/all-bots', (req, res) => {
 
 app.get('/logs/:username', (req, res) => {
     const username = req.params.username;
-    const logPath = path.join(__dirname, '..', 'botLogs', `${username}.log`)
+    const logPath = path.join(__dirname, '..', 'botLogs', `${username}.log`);
     fs.readFile(logPath, 'utf8', (err, data) => {
         if (err) {
             if (err.code === 'ENOENT') {
@@ -128,35 +127,35 @@ app.get('/logs/:username', (req, res) => {
 app.post('/start-bot/:username', (req: any, res: any) => {
     const { username } = req.params;
     if (botProcesses[username]) {
-        return res.status(400).json({ message: 'Bot is already running' });
+        return res.status(400).send({ error: 'Bot is already running' });
     }
 
-    const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
-        env: { ...process.env, BOT_USERNAME: username, BOT_PASSWORD: req.body.password }
-    });
-
-    botProcesses[username] = botProcess;
-
-    botProcess.on('close', (code) => {
-        console.log(`Bot ${username} exited with code ${code}`);
-        delete botProcesses[username];
-    });
-
-    res.json({ message: 'Bot started successfully' });
+    try {
+        startBot(username);  // Start the bot using your logic from index.ts
+        console.log(`Bot for ${username} started`);
+        res.send({ status: `Bot ${username} started` });
+    } catch (error) {
+        console.error(`Failed to start bot for ${username}:`, error);
+        res.status(500).send({ error: 'Failed to start bot' });
+    }
 });
 
 app.post('/stop-bot/:username', (req: any, res: any) => {
     const { username } = req.params;
     const botProcess = botProcesses[username];
-
     if (!botProcess) {
-        return res.status(404).json({ message: 'Bot is not running' });
+        return res.status(400).send({ error: 'Bot is not running' });
     }
 
-    botProcess.kill();
-    delete botProcesses[username];
-
-    res.json({ message: 'Bot stopped successfully' });
+    try {
+        botProcess.kill(); // Stop the bot process
+        delete botProcesses[username]; // Remove from storage
+        console.log(`Stopped bot for ${username}`);
+        res.send({ status: `Bot ${username} stopped` });
+    } catch (error) {
+        console.error(`Failed to stop bot for ${username}:`, error);
+        res.status(500).send({ error: 'Failed to stop bot' });
+    }
 });
 
 app.get('/bot-status/:username', (req, res) => {

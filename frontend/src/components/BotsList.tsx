@@ -16,7 +16,7 @@ const BotsList: React.FC = () => {
     useEffect(() => {
         const fetchBots = async () => {
             try {
-                const response = await fetch('http://localhost:3000/all-bots');
+                const response = await fetch('http://localhost:8080/all-bots');
                 if (!response.ok) {
                     throw new Error('Failed to fetch bots');
                 }
@@ -37,12 +37,12 @@ const BotsList: React.FC = () => {
 
     const startBot = async (botName: string) => {
         try {
-            const response = await fetch(`http://localhost:3000/start-bot/${botName}`, { method: 'POST' });
+            const response = await fetch(`http://localhost:8080/start-bot/${botName}`, { method: 'POST' });
             if (!response.ok) {
                 throw new Error('Failed to start bot');
             }
             // Refresh bot list
-            const updatedBots = await fetch('http://localhost:3000/all-bots').then(res => res.json());
+            const updatedBots = await fetch('http://localhost:8080/all-bots').then(res => res.json());
             setBots(updatedBots);
         } catch (err) {
             setError('Failed to start bot');
@@ -51,12 +51,12 @@ const BotsList: React.FC = () => {
 
     const stopBot = async (botName: string) => {
         try {
-            const response = await fetch(`http://localhost:3000/stop-bot/${botName}`, { method: 'POST' });
+            const response = await fetch(`http://localhost:8080/stop-bot/${botName}`, { method: 'POST' });
             if (!response.ok) {
                 throw new Error('Failed to stop bot');
             }
             // Refresh bot list
-            const updatedBots = await fetch('http://localhost:3000/all-bots').then(res => res.json());
+            const updatedBots = await fetch('http://localhost:8080/all-bots').then(res => res.json());
             setBots(updatedBots);
         } catch (err) {
             setError('Failed to stop bot');

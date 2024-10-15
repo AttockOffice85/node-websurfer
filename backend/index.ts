@@ -1,7 +1,9 @@
+// backend/index.ts
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import { botProcesses } from './src/utils';
 
 dotenv.config();
 
@@ -26,9 +28,24 @@ function runBot(user: any) {
 
     botProcess.on('close', (code) => {
         console.log(`Bot ${botUserName} exited with code ${code}`);
+        delete botProcesses[user.username]; // Remove from botProcesses on exit
         // Restart the bot after a delay
         setTimeout(() => runBot(user), 30000);
     });
+
+    botProcesses[user.username] = botProcess; // Store the bot process
+}
+
+export function startBot(username: string) {
+    const user = users.find((u: { username: string; }) => u.username.split('@')[0] === username);
+    if (user) {
+        if (!botProcesses[username]) { // Check if already running
+            runBot(user);
+            console.log(`Starting bot for ${username}`);
+        } else {
+            console.log(`Bot for ${username} is already running.`);
+        }
+    }
 }
 
 function main() {

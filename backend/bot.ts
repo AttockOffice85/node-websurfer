@@ -74,7 +74,10 @@ async function runBot() {
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
 
-        page = await browser.newPage();
+        let pages = await browser.pages();
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+        page = pages[0];
         await page.setViewport({ width: 1200, height: 1080 });
 
         // Login process

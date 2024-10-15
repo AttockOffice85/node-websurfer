@@ -132,7 +132,6 @@ app.post('/start-bot/:username', (req: any, res: any) => {
 
     try {
         startBot(username);  // Start the bot using your logic from index.ts
-        console.log(`Bot for ${username} started`);
         res.send({ status: `Bot ${username} started` });
     } catch (error) {
         console.error(`Failed to start bot for ${username}:`, error);
@@ -149,7 +148,7 @@ app.post('/stop-bot/:username', (req: any, res: any) => {
 
     try {
         botProcess.kill(); // Stop the bot process
-        delete botProcesses[username]; // Remove from storage
+        // delete botProcesses[username]; // Remove from storage
         console.log(`Stopped bot for ${username}`);
         res.send({ status: `Bot ${username} stopped` });
     } catch (error) {

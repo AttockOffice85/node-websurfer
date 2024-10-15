@@ -30,14 +30,14 @@ function runBot(user: any) {
         console.log(`Bot ${botUserName} exited with code ${code}`);
         delete botProcesses[user.username]; // Remove from botProcesses on exit
         // Restart the bot after a delay
-        setTimeout(() => runBot(user), 30000);
+        // setTimeout(() => runBot(user), 30000);
     });
 
-    botProcesses[user.username] = botProcess; // Store the bot process
+    botProcesses[botUserName] = botProcess; // Store the bot process
 }
 
 export function startBot(username: string) {
-    const user = users.find((u: { username: string; }) => u.username.split('@')[0] === username);
+    const user = users.find((u: { username: string; }) => u.username === username);
     if (user) {
         if (!botProcesses[username]) { // Check if already running
             runBot(user);

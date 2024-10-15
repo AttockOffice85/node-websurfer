@@ -55,11 +55,25 @@ const BotsList: React.FC = () => {
             if (!response.ok) {
                 throw new Error('Failed to stop bot');
             }
-            // Refresh bot list
             const updatedBots = await fetch('http://localhost:8080/all-bots').then(res => res.json());
             setBots(updatedBots);
         } catch (err) {
             setError('Failed to stop bot');
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Active':
+                return 'text-green-800';
+            case 'Error...':
+                return 'text-red-800';
+            case 'Starting':
+                return 'text-yellow-800';
+            case 'Processing...':
+                return 'text-blue-800';
+            default:
+                return 'text-gray-800';
         }
     };
 
@@ -82,7 +96,9 @@ const BotsList: React.FC = () => {
                     {bots.map((bot) => (
                         <tr key={bot.name}>
                             <td className="py-2 px-4 border-b">{bot.name}</td>
-                            <td className="py-2 px-4 border-b">{bot.status}</td>
+                            <td className={`py-2 px-4 border-b ${getStatusColor(bot.status)}`}>
+                                {bot.status}
+                            </td>
                             <td className="py-2 px-4 border-b">{bot.postCount}</td>
                             <td className="py-2 px-4 border-b">
                                 {bot.isRunning ? (

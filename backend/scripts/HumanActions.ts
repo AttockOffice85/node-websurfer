@@ -289,6 +289,8 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
             
             await goToAndLikeCompanyPosts(page, logger);
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+            break;
         } else {
             await page.evaluate((el) => {
                 el.style.border = '1px solid red';

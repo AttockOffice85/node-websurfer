@@ -46,7 +46,7 @@ Before running this project, ensure you have the following installed on your mac
 
 4.1. Set up the environment variables:
 
-    Create a `.env` file in the root directory of the project based on the `.env.example` file provided.
+    Create a `.env` file in the root directory of the backend dir based on the `.env.example` file provided.
 
     Example `.env` file:
     ```env
@@ -71,8 +71,17 @@ Before running this project, ensure you have the following installed on your mac
     ```bash
     cd frontend
     ```
+
+5.1. Set up the environment variables:
+
+    Create a `.env` file in the root directory of the frontend dir based on the `.env.example` file provided.
+
+    Example `.env` file:
+    ```env
+    REACT_APP_API_URL=http://localhost:8080
+    ```
     
-5.1. Install the required dependencies and run the frontend server:
+5.2. Install the required dependencies and run the frontend server:
 
     ```bash
     npm install
@@ -90,6 +99,7 @@ The following environment variables are required for the bot to function:
 - **`NO_OF_RANDOM_POSTS`**: The number of posts on home to interact with during each bot run.
 - **`NO_OF_BOTS`**: Set no of bots equal to no of users defined in the users-data.json file.
 - **`SERVER_PORT`**: Set port to 8080.
+- **`REACT_APP_API_URL`**: do not add ' / ' at the end of backend url
 
 ## Usage
 

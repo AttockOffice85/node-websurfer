@@ -99,7 +99,7 @@ const BotsList: React.FC = () => {
                         <th className='px-4 py-3 text-start tracking-wider border-b'>Sr. #</th>
                         <th className='py-2 px-4 text-start border-b'>Bot Name</th>
                         <th className='py-2 px-4 text-start border-b'>Status</th>
-                        <th className='py-2 px-4 text-start border-b'>Post Count</th>
+                        <th className='hidden py-2 px-4 text-start border-b'>Post Count</th>
                         <th className='py-2 px-4 text-start border-b'>Actions</th>
                     </tr>
                 </thead>
@@ -111,10 +111,10 @@ const BotsList: React.FC = () => {
                                 onClick={() => window.open(`/logs/${bot.name}`, '_blank')}>
                                 {bot.name}
                             </td>
-                            <td className={`py-2 px-4 border-b ${getStatusColor(bot.status)}`}>
+                            <td className={`py-2 px-4 border-b font-semibold text-lg ${getStatusColor(bot.status)}`}>
                                 {bot.status}
                             </td>
-                            <td className='py-2 px-4 border-b'>{bot.postCount}</td>
+                            <td className='hidden py-2 px-4 border-b'>{bot.postCount}</td>
                             <td className='py-2 px-4 border-b'>
                                 {bot.isRunning ? (
                                     <button onClick={() => stopBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>

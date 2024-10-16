@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotInfo: React.FC = () => {
     const { username } = useParams<{ username: string }>(); // Get the username from the URL
@@ -10,7 +11,7 @@ const BotInfo: React.FC = () => {
 
     const fetchLogs = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/logs/${username}`); // Adjust the API URL
+            const response = await fetch(`${apiUrl}/logs/${username}`); // Adjust the API URL
             if (!response.ok) {
                 throw new Error('Failed to fetch logs');
             }
@@ -43,19 +44,19 @@ const BotInfo: React.FC = () => {
         }
     }, [logData]);
 
-    if (loading) return <div className="text-center p-4">Loading...</div>;
-    if (error) return <div className="text-center p-4 text-red-500">Error: {error}</div>;
+    if (loading) return <div className='text-center p-4'>Loading...</div>;
+    if (error) return <div className='text-center p-4 text-red-500'>Error: {error}</div>;
 
     return (
-        <div className="container mx-auto p-4">
-            <div className="flex justify-between items-center mb-3">
-                <h1 className="text-2xl font-bold">Logs for {username}</h1>
-                <p className="bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md">
+        <div className='container mx-auto p-4'>
+            <div className='flex justify-between items-center mb-3'>
+                <h1 className='text-2xl font-bold'>Logs for {username}</h1>
+                <p className='bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md'>
                     <strong>Notice:</strong> No need to refresh the page! Logs are automatically updated every 3 seconds.
                 </p>
             </div>
-            <div id='console-logs' ref={logRef} className="bg-black/95 p-4 rounded-md border border-gray-300 overflow-x-auto">
-                <pre className="text-xs text-white">
+            <div id='console-logs' ref={logRef} className='bg-black/95 p-4 rounded-md border border-gray-300 overflow-x-auto'>
+                <pre className='text-xs text-white'>
                     {logData}
                 </pre>
             </div>

@@ -101,7 +101,7 @@ async function runBot() {
 
             console.log("Login successful. Proceeding to home page.");
         } else if (page.url() === "https://www.linkedin.com/feed/") {
-            logger.log('Login successful');
+            logger.log('On the homepage...');
         } else {
             logger.log('Unknown Error In Login Process...');
         }

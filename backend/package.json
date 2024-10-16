@@ -9,9 +9,7 @@
     "start": "concurrently \"npm run start:bot\" \"npm run start:server\"",
     "start:bot": "node dist/index.js",
     "start:server": "node dist/logServer.js",
-    "dev": "concurrently \"npm run dev:bot\" \"npm run dev:server\"",
-    "dev:bot": "ts-node ./index.ts",
-    "dev:server": "ts-node-dev --respawn ./src/server.ts",
+    "dev": "ts-node-dev --respawn ./src/server.ts",
     "build:watch": "tsc -w"
   },
   "repository": {

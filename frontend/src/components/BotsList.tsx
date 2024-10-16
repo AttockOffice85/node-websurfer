@@ -37,7 +37,13 @@ const BotsList: React.FC = () => {
 
     const startBot = async (botName: string) => {
         try {
-            const response = await fetch(`http://localhost:8080/start-bot/${botName}`, { method: 'POST' });
+            const response = await fetch('http://localhost:8080/start-bot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username: botName }),
+            });
             if (!response.ok) {
                 throw new Error('Failed to start bot');
             }
@@ -51,7 +57,13 @@ const BotsList: React.FC = () => {
 
     const stopBot = async (botName: string) => {
         try {
-            const response = await fetch(`http://localhost:8080/stop-bot/${botName}`, { method: 'POST' });
+            const response = await fetch('http://localhost:8080/stop-bot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username: botName }),
+            });
             if (!response.ok) {
                 throw new Error('Failed to stop bot');
             }

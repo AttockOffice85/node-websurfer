@@ -98,7 +98,7 @@ app.get('/all-bots', (req, res) => {
                     status,
                     postCount,
                     inactiveSince,
-                    isRunning: !botProcesses[botName]
+                    isRunning: !!botProcesses[botName]
                 };
                 return botInfo;
             });
@@ -124,8 +124,8 @@ app.get('/logs/:username', (req, res) => {
     });
 });
 
-app.post('/start-bot/:username', (req: any, res: any) => {
-    const { username } = req.params;
+app.post('/start-bot', (req: any, res: any) => {
+    const { username } = req.body;
     if (botProcesses[username]) {
         return res.status(400).send({ error: 'Bot is already running' });
     }
@@ -139,8 +139,8 @@ app.post('/start-bot/:username', (req: any, res: any) => {
     }
 });
 
-app.post('/stop-bot/:username', (req: any, res: any) => {
-    const { username } = req.params;
+app.post('/stop-bot', (req: any, res: any) => {
+    const { username } = req.body;
     const botProcess = botProcesses[username];
     if (!botProcess) {
         return res.status(400).send({ error: 'Bot is not running' });

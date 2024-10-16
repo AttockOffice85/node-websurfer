@@ -19,16 +19,16 @@ function runBot(user: any) {
     let botUserName = user.username.split('@')[0];
 
     botProcess.stdout.on('data', (data) => {
-        console.log(`Bot ${botUserName}: ${data}`);
+        console.log(`stdout.on: Bot ${botUserName}: ${data}`);
     });
 
     botProcess.stderr.on('data', (data) => {
-        console.error(`Bot ${botUserName} error: ${data}`);
+        console.error(`stderr.on: Bot ${botUserName} error: ${data}`);
     });
 
     botProcess.on('close', (code) => {
-        console.log(`Bot ${botUserName} exited with code ${code}`);
-        delete botProcesses[user.username]; // Remove from botProcesses on exit
+        console.log(`on('close: Bot ${botUserName} exited with code ${code}`);
+        delete botProcesses[botUserName]; // Remove from botProcesses on exit
         // Restart the bot after a delay
         // setTimeout(() => runBot(user), 30000);
     });
@@ -37,7 +37,7 @@ function runBot(user: any) {
 }
 
 export function startBot(username: string) {
-    const user = users.find((u: { username: string; }) => u.username === username);
+    const user = users.find((u: { username: string; }) => u.username.split('@')[0] === username);
     if (user) {
         if (!botProcesses[username]) { // Check if already running
             runBot(user);

@@ -40,8 +40,9 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
         if (currentSize === lastSize) {
             const timeSinceLastModification = Date.now() - stats.mtimeMs;
 
-            if (timeSinceLastModification > 60 * 1000 && hasError(lastLine)) {
-                status = 'Error...';
+            const errorStatus = getErrorStatus(lastLine);
+            if (timeSinceLastModification > 60 * 100 && errorStatus) {
+                status = errorStatus;
                 if (!inactiveSince) {
                     inactiveSince = updateInactiveSince(logFilePath);
                 }
@@ -50,8 +51,10 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
             }
         } else if (currentSize > lastSize) {
             // File is growing
-            if (hasError(lastLine)) {
-                status = 'Error...';
+            const errorStatus = getErrorStatus(lastLine);
+
+            if (errorStatus) {
+                status = errorStatus;
                 if (!inactiveSince) {
                     inactiveSince = updateInactiveSince(logFilePath);
                 }
@@ -67,7 +70,8 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
             status = 'Starting';
             botInactiveSince[logFilePath] = undefined; // Clear inactive time during startup
         } else {
-            status = 'Processing...';
+            const errorStatus = getErrorStatus(lastLine);
+            status = errorStatus || 'Processing...';
             if (!inactiveSince) {
                 inactiveSince = updateInactiveSince(logFilePath);
             }
@@ -225,8 +229,10 @@ function formatDate(date: Date): string {
     return `${dayOfWeek}-${month}-${year} ${formattedHours}:${minutes} ${ampm}`;
 }
 
-function hasError(line: string): boolean {
-    return ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever'].some(error => line.includes(error));
+function getErrorStatus(line: string): string | null {
+    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped'];
+    const matchedError = errors.find(error => line.includes(error));
+    return matchedError || null;
 }
 
 function updateInactiveSince(logFilePath: string): string {

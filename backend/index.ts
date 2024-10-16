@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { botProcesses } from './src/utils';
+import Logger from './scripts/logger';
 
 dotenv.config();
 
@@ -29,6 +30,8 @@ function runBot(user: any) {
     botProcess.on('close', (code) => {
         console.log(`on('close: Bot ${botUserName} exited with code ${code}`);
         delete botProcesses[botUserName]; // Remove from botProcesses on exit
+        const logger = new Logger(botUserName);
+        logger.log(`Stopped the bot: ${botUserName}`);
         // Restart the bot after a delay
         // setTimeout(() => runBot(user), 30000);
     });

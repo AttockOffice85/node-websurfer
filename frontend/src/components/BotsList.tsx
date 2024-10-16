@@ -6,9 +6,12 @@ const BotsList: React.FC = () => {
     if (!apiUrl) {
         alert('no backend endpoint defined');
     }
+
     const [bots, setBots] = useState<Bot[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [noOfInactiveBots, setNoOfInactiveBots] = useState<number>(0);
+    const [noOfActiveBots, setNoOfActiveBots] = useState<number>(0);
 
     useEffect(() => {
         const fetchBots = async () => {
@@ -19,6 +22,13 @@ const BotsList: React.FC = () => {
                 }
                 const data = await response.json();
                 setBots(data);
+
+                const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped'].includes(bot.status));
+
+                setNoOfInactiveBots(botsInActiveArr.length);
+                const botsActive = data.length - botsInActiveArr.length;
+                setNoOfActiveBots(botsActive < 0 ? 0 : botsActive);
+
                 setLoading(false);
             } catch (err) {
                 setError('Failed to fetch bots');
@@ -44,7 +54,6 @@ const BotsList: React.FC = () => {
             if (!response.ok) {
                 throw new Error('Failed to start bot');
             }
-            // Refresh bot list
             const updatedBots = await fetch(`${apiUrl}/all-bots`).then(res => res.json());
             setBots(updatedBots);
         } catch (err) {
@@ -75,8 +84,13 @@ const BotsList: React.FC = () => {
         switch (status) {
             case 'Active':
                 return 'text-green-800';
-            case 'Error...':
-            case 'failed':
+            case 'Error':
+            case 'timeout of':
+            case 'ERROR':
+            case 'crashed after':
+            case 'Session ended':
+            case 'Breaking forever':
+            case 'Stopped':
                 return 'text-red-800';
             case 'Starting':
                 return 'text-yellow-800';
@@ -92,7 +106,22 @@ const BotsList: React.FC = () => {
 
     return (
         <div className='container mx-auto p-4'>
-            <h1 className='text-2xl font-bold mb-4'>Bots List</h1>
+            <div className='flex justify-between items-center mb-3'>
+                <h1 className='text-2xl font-bold'>Bots List</h1>
+                <p className='bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md'>
+                    <strong>Notice:</strong> No need to refresh the page! Logs are automatically updated every 5 seconds.
+                </p>
+            </div>
+
+            <div className="mt-4 mb-3 w-full flex justify-start gap-6">
+                <p className="flex justify-start items-baseline gap-2">
+                    <strong>Inactive Bots: </strong>  <span className='text-red-500'>{noOfInactiveBots}</span>
+                </p>
+                <p className="flex justify-start items-baseline gap-2">
+                    <strong>Active Bots: </strong>  <span className='text-green-500'>{noOfActiveBots}</span>
+                </p>
+            </div>
+
             <table className='min-w-full bg-white border border-gray-300 rounded-lg shadow-md'>
                 <thead className='bg-gray-100 border-b'>
                     <tr>

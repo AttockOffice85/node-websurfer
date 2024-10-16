@@ -3,6 +3,9 @@ import { useParams } from 'react-router-dom';
 const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotInfo: React.FC = () => {
+    if (!apiUrl) {
+        alert('no backend endpoint defined');
+    }
     const { username } = useParams<{ username: string }>(); // Get the username from the URL
     const [logData, setLogData] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);

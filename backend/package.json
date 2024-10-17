@@ -6,8 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "npm run build && node dist/index.js > console-logs.log",
-    "dev": "ts-node ./index.ts"
+    "start": "concurrently \"npm run start:bot\" \"npm run start:server\"",
+    "start:bot": "node dist/index.js",
+    "start:server": "node dist/logServer.js",
+    "dev": "ts-node-dev --respawn ./src/server.ts",
+    "build:watch": "tsc -w"
   },
   "repository": {
     "type": "git",
@@ -28,14 +31,20 @@
   },
   "homepage": "https://github.com/AttockOffice85/node-websurfer#readme",
   "dependencies": {
+    "@types/express": "^5.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "express": "^4.21.1",
     "puppeteer": "^23.4.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/puppeteer": "^5.4.7",
+    "concurrently": "^9.0.1",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.6.2"
   }
 }

@@ -12,6 +12,9 @@ const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'))
 const users = usersData.users;
 const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
 
+// New map to track bot status
+const botStatus: { [key: string]: boolean } = {};
+
 function runBot(user: any) {
     const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
         env: { ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password }
@@ -32,11 +35,19 @@ function runBot(user: any) {
         delete botProcesses[botUserName]; // Remove from botProcesses on exit
         const logger = new Logger(botUserName);
         logger.log(`Stopped the bot: ${botUserName}`);
-        // Restart the bot after a delay
-        // setTimeout(() => runBot(user), 30000);
+
+        // Check if the bot was not manually stopped before restarting
+        if (botStatus[botUserName] !== false) {
+            setTimeout(() => runBot(user), 30000);
+        } else {
+            logger.log(`Manually stopped. Not restarting.`);
+            // Reset the status for future use
+            delete botStatus[botUserName];
+        }
     });
 
     botProcesses[botUserName] = botProcess; // Store the bot process
+    botStatus[botUserName] = true; // Set the bot status to running
 }
 
 export function startBot(username: string) {
@@ -48,6 +59,16 @@ export function startBot(username: string) {
         } else {
             console.log(`Bot for ${username} is already running.`);
         }
+    }
+}
+
+export function stopBot(username: string) {
+    if (botProcesses[username]) {
+        botStatus[username] = false; // Set the bot status to stopped
+        botProcesses[username].kill(); // Stop the bot process
+        console.log(`Manually stopped bot for ${username}`);
+    } else {
+        console.log(`Bot for ${username} is not running.`);
     }
 }
 

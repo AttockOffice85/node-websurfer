@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot } from '../scripts/types';
+import { Bot, botStatusExplanations } from '../scripts/types';
 const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotsList: React.FC = () => {
@@ -23,7 +23,7 @@ const BotsList: React.FC = () => {
                 const data = await response.json();
                 setBots(data);
 
-                const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped'].includes(bot.status));
+                const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'].includes(bot.status));
 
                 setNoOfInactiveBots(botsInActiveArr.length);
                 const botsActive = data.length - botsInActiveArr.length;
@@ -89,6 +89,7 @@ const BotsList: React.FC = () => {
             case 'ERROR':
             case 'crashed after':
             case 'Session ended':
+            case 'Manually stopped':
             case 'Breaking forever':
             case 'Stopped':
                 return 'text-red-800';
@@ -159,6 +160,23 @@ const BotsList: React.FC = () => {
                     ))}
                 </tbody>
             </table>
+
+            <div className="bot-status-explainations w-full border-t mt-6">
+                <div className="mt-4 mb-3 w-full flex justify-start gap-6">
+                    <p className="flex justify-start items-baseline border-b text-lg w-full gap-2">
+                        <strong>Bot's Status Explained</strong>
+                    </p>
+                </div>
+                <ul className="w-full">
+                    {botStatusExplanations && botStatusExplanations.map(({ status, desc }, index) => (
+                        <li key={index} className={`w-full flex justify-start items-baseline gap-2 py-1 border-b`}>
+                            <p className="font-bold">{status}</p> <span>: </span>
+                            <p className="font-semibold">{desc}</p>
+                        </li>
+                    ))
+                    }
+                </ul>
+            </div>
         </div>
     );
 };

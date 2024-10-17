@@ -4,8 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { spawn, ChildProcess } from 'child_process';
-import { startBot } from '../index'; // Import startBot function from index.ts
+import { spawn } from 'child_process';
+import { startBot, stopBot } from '../index'; // Import startBot function from index.ts
 import { botProcesses } from './utils';
 
 dotenv.config();
@@ -145,15 +145,12 @@ app.post('/start-bot', (req: any, res: any) => {
 
 app.post('/stop-bot', (req: any, res: any) => {
     const { username } = req.body;
-    const botProcess = botProcesses[username];
-    if (!botProcess) {
-        return res.status(400).send({ error: 'Bot is not running' });
+    if (!username) {
+        return res.status(400).send({ error: 'Username is required' });
     }
 
     try {
-        botProcess.kill(); // Stop the bot process
-        // delete botProcesses[username]; // Remove from storage
-        console.log(`Stopped bot for ${username}`);
+        stopBot(username);
         res.send({ status: `Bot ${username} stopped` });
     } catch (error) {
         console.error(`Failed to stop bot for ${username}:`, error);
@@ -230,7 +227,7 @@ function formatDate(date: Date): string {
 }
 
 function getErrorStatus(line: string): string | null {
-    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped'];
+    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'];
     const matchedError = errors.find(error => line.includes(error));
     return matchedError || null;
 }

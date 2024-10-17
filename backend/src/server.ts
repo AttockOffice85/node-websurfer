@@ -236,7 +236,7 @@ function formatDate(date: Date): string {
 }
 
 function getErrorStatus(line: string): string | null {
-    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'];
+    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped', 'Captcha/Code'];
     const matchedError = errors.find(error => line.includes(error));
     return matchedError || null;
 }
@@ -277,6 +277,8 @@ async function handleBotStart(email: string, password?: string, apiKey?: string,
                 password: password || 'defaultPassword',
                 huggingFaceApiKey: apiKey || 'defaultApiKey',
             };
+
+            // Add the new user
             usersData.users.push(newUser);
 
             // Write the updated users data back to the file
@@ -284,13 +286,16 @@ async function handleBotStart(email: string, password?: string, apiKey?: string,
 
             // Confirm the new user was added by re-reading the file
             const updatedUsersData = JSON.parse(await promiseFs.readFile(usersDataPath, 'utf8'));
-            const confirmedUser = updatedUsersData.users.find((user: any) => user.username === email);
+            const confirmedUser = usersData.users.find((user: any) => user.username === email);
 
             if (confirmedUser) {
+                console.log("User added successfully:", confirmedUser);
+                // Start the bot after confirming the new user has been added
                 startBot(username);
+            } else {
+                console.error("User not found after write operation.");
             }
         } else {
-            // Start the bot after confirming the new user has been added
             startBot(username);
         }
         return { status: `Bot ${isNewUser ? 'added and' : ''} started successfully` };

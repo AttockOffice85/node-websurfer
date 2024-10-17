@@ -14,6 +14,7 @@ const BotsList: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [noOfInactiveBots, setNoOfInactiveBots] = useState<number>(0);
     const [noOfActiveBots, setNoOfActiveBots] = useState<number>(0);
+    const [botsAttentionReq, setBotsAttentionReq] = useState<number>(0);
     const { openPopup } = usePopupUserFormStore();
 
     useEffect(() => {
@@ -28,6 +29,8 @@ const BotsList: React.FC = () => {
 
                 const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'].includes(bot.status));
 
+                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code'].includes(bot.status));
+                setBotsAttentionReq(botsAttentionReqArr?.length);
                 setNoOfInactiveBots(botsInActiveArr.length);
                 const botsActive = data.length - botsInActiveArr.length;
                 setNoOfActiveBots(botsActive < 0 ? 0 : botsActive);
@@ -96,6 +99,8 @@ const BotsList: React.FC = () => {
             case 'Breaking forever':
             case 'Stopped':
                 return 'text-red-800';
+            case 'Captcha/Code':
+                return 'text-xl italic animate-pulse text-white bg-green-600';
             case 'Starting':
                 return 'text-yellow-800';
             case 'Processing...':
@@ -123,6 +128,9 @@ const BotsList: React.FC = () => {
                 </p>
                 <p className="flex justify-start items-baseline gap-2">
                     <strong>Active Bots: </strong>  <span className='text-green-500'>{noOfActiveBots}</span>
+                </p>
+                <p className="flex justify-start items-baseline gap-2">
+                    <strong>Bots require attention: </strong>  <span className='text-blue-500'>{botsAttentionReq}</span>
                 </p>
                 <div className="flex-1">
                     {/* Button to open the popup */}

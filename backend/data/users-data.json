@@ -1,14 +1,14 @@
 {
-    "users": [
-        {
-            "username": "afaq.ahmed10009@gmail.com",
-            "password": "mySelf123$$",
-            "huggingFaceApiKey": "your-hugging-face-api-key2"
-        },
-        {
-            "username": "attockofficeworkonly@gmail.com",
-            "password": "Makhdoom123$$",
-            "huggingFaceApiKey": "your-hugging-face-api-key1"
-        }
-    ]
+  "users": [
+    {
+      "username": "afaq.ahmed10009@gmail.com",
+      "password": "mySelf123$$",
+      "huggingFaceApiKey": "your-hugging-face-api-key2"
+    },
+    {
+      "username": "attockofficeworkonly@gmail.com",
+      "password": "Makhdoom123$$",
+      "huggingFaceApiKey": "your-hugging-face-api-key1"
+    }
+  ]
 }

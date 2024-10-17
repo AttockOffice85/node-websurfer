@@ -49,15 +49,24 @@ function runBot(user: any) {
     botProcesses[botUserName] = botProcess; // Store the bot process
     botStatus[botUserName] = true; // Set the bot status to running
 }
-
-export function startBot(username: string) {
+let retryNewUser = 0;
+export async function startBot(username: string) {
+    console.log(users, "USERNAME: ", username);
     const user = users.find((u: { username: string; }) => u.username.split('@')[0] === username);
     if (user) {
+        console.log(username, " :USERNAME: ", botProcesses[username]);
         if (!botProcesses[username]) { // Check if already running
             runBot(user);
             console.log(`Starting bot for ${username}`);
         } else {
             console.log(`Bot for ${username} is already running.`);
+        }
+    } else {
+        console.log('Retrying: ', retryNewUser, " :User not found in the file: ", username)
+        if (retryNewUser < 3) {
+            retryNewUser++;
+            new Promise(resolve => setTimeout(resolve, 2000));
+            startBot(username);
         }
     }
 }

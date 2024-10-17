@@ -93,10 +93,13 @@ async function runBot() {
 
             // Type credentials with human-like speed
             await typeWithHumanLikeSpeed(page, '#username', username, logger);
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
             await typeWithHumanLikeSpeed(page, '#password', password, logger);
+            
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
             await page.click('.login__form_action_container button');
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
             await page.waitForNavigation();
 
             console.log("Login successful. Proceeding to home page.");
@@ -104,6 +107,25 @@ async function runBot() {
             logger.log('On the homepage...');
         } else {
             logger.log('Unknown Error In Login Process...');
+        }
+
+        if (page.url().includes('checkpoint/challenge/')) {
+            logger.log('Captcha/Code Verification required...');
+
+            // Wait for the user to manually resolve the captcha
+            await new Promise<void>((resolve) => {
+                const checkPage = async () => {
+                    const currentUrl = page?.url();
+                    if (currentUrl === "https://www.linkedin.com/feed/") {
+                        logger.log('Captcha verification successful. Continuing process...');
+                        resolve(); // Resolve the promise to continue the process
+                    } else {
+                        // Check again after a short delay
+                        setTimeout(checkPage, 3000); // Check every 3 seconds
+                    }
+                };
+                checkPage();
+            });
         }
 
         while (true) {

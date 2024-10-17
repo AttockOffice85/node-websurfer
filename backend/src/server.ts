@@ -1,6 +1,7 @@
 // backend/src/server.ts
 import express from 'express';
 import fs from 'fs';
+import * as promiseFs from 'fs/promises';
 import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -19,6 +20,9 @@ app.use(express.json());
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
 const botInactiveSince: { [logFilePath: string]: string | undefined } = {};
+
+// Path to the users data JSON file
+const usersDataPath = path.join(process.cwd(), 'data', 'users-data.json');
 
 function getLatestStatus(logFilePath: string): { status: string, postCount: number, inactiveSince?: string } {
     try {
@@ -128,19 +132,22 @@ app.get('/logs/:username', (req, res) => {
     });
 });
 
-app.post('/start-bot', (req: any, res: any) => {
-    const { username } = req.body;
-    if (botProcesses[username]) {
-        return res.status(400).send({ error: 'Bot is already running' });
+app.post('/add-bot', async (req: any, res: any) => {
+    const { email, password, apiKey } = req.body;
+    const result = await handleBotStart(email, password, apiKey, true);
+    if (result.error) {
+        return res.status(500).send({ error: result.error });
     }
+    res.send({ status: result.status });
+});
 
-    try {
-        startBot(username);  // Start the bot using your logic from index.ts
-        res.send({ status: `Bot ${username} started` });
-    } catch (error) {
-        console.error(`Failed to start bot for ${username}:`, error);
-        res.status(500).send({ error: 'Failed to start bot' });
+app.post('/start-bot', async (req: any, res: any) => {
+    const { username } = req.body;
+    const result = await handleBotStart(username, undefined, undefined, false);  // No need for password/apiKey when starting an existing user
+    if (result.error) {
+        return res.status(500).send({ error: result.error });
     }
+    res.send({ status: result.status });
 });
 
 app.post('/stop-bot', (req: any, res: any) => {
@@ -205,6 +212,8 @@ app.listen(port, () => {
     console.log(`Log server listening at http://localhost:${port}`);
 });
 
+// HELPER FUNCTIONS
+
 function formatDate(date: Date): string {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const months = [
@@ -236,4 +245,57 @@ function updateInactiveSince(logFilePath: string): string {
     const now = formatDate(new Date());
     botInactiveSince[logFilePath] = now;
     return now;
+}
+
+async function handleBotStart(email: string, password?: string, apiKey?: string, isNewUser?: boolean): Promise<{ status: string; error?: string }> {
+    let username: string = email;
+    if (email.includes('@')) {
+        username = email.split('@')[0];
+    }
+
+    // Check if the bot is already running
+    if (botProcesses[username]) {
+        return { status: 'Bot is already running' };
+    }
+
+    try {
+        if (isNewUser) {
+            // Read the users data file
+            const usersData = JSON.parse(await promiseFs.readFile(usersDataPath, 'utf8'));
+
+            // Check if the user already exists
+            const existingUser = usersData.users.find((user: any) => user.username === email);
+            if (existingUser) {
+                // Start the bot if user exists but bot isn't running
+                startBot(username);
+                return { status: `User: ${username} already exists. Bot started.` };
+            }
+
+            // Add the new user to users-data.json
+            const newUser = {
+                username: email,
+                password: password || 'defaultPassword',
+                huggingFaceApiKey: apiKey || 'defaultApiKey',
+            };
+            usersData.users.push(newUser);
+
+            // Write the updated users data back to the file
+            await promiseFs.writeFile(usersDataPath, JSON.stringify(usersData, null, 2));
+
+            // Confirm the new user was added by re-reading the file
+            const updatedUsersData = JSON.parse(await promiseFs.readFile(usersDataPath, 'utf8'));
+            const confirmedUser = updatedUsersData.users.find((user: any) => user.username === email);
+
+            if (confirmedUser) {
+                startBot(username);
+            }
+        } else {
+            // Start the bot after confirming the new user has been added
+            startBot(username);
+        }
+        return { status: `Bot ${isNewUser ? 'added and' : ''} started successfully` };
+    } catch (error) {
+        console.error(`Failed to start bot for ${username}:`, error);
+        return { status: `Failed to ${isNewUser ? 'add and' : ''} start bot`, error: String(error) };
+    }
 }

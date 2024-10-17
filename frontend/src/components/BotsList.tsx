@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, botStatusExplanations } from '../scripts/types';
+import { usePopupUserFormStore } from '../store/usePopupStore';
+import UserModal from '../models/UserModal';
 const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotsList: React.FC = () => {
@@ -12,6 +14,7 @@ const BotsList: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [noOfInactiveBots, setNoOfInactiveBots] = useState<number>(0);
     const [noOfActiveBots, setNoOfActiveBots] = useState<number>(0);
+    const { openPopup } = usePopupUserFormStore();
 
     useEffect(() => {
         const fetchBots = async () => {
@@ -114,13 +117,19 @@ const BotsList: React.FC = () => {
                 </p>
             </div>
 
-            <div className="mt-4 mb-3 w-full flex justify-start gap-6">
+            <div className="mt-4 mb-3 w-full flex justify-start items-center gap-6">
                 <p className="flex justify-start items-baseline gap-2">
                     <strong>Inactive Bots: </strong>  <span className='text-red-500'>{noOfInactiveBots}</span>
                 </p>
                 <p className="flex justify-start items-baseline gap-2">
                     <strong>Active Bots: </strong>  <span className='text-green-500'>{noOfActiveBots}</span>
                 </p>
+                <div className="flex-1">
+                    {/* Button to open the popup */}
+                    <button onClick={openPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
+                        Add New Bot
+                    </button>
+                </div>
             </div>
 
             <table className='min-w-full bg-white border border-gray-300 rounded-lg shadow-md'>
@@ -177,6 +186,10 @@ const BotsList: React.FC = () => {
                     }
                 </ul>
             </div>
+
+            {/* Modals placement */}
+            <UserModal />
+            {/* Modals placement */}
         </div>
     );
 };

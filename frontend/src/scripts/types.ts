@@ -6,6 +6,18 @@ export interface Bot {
     isRunning: boolean;
 }
 
+export interface PopupState {
+    isOpen: boolean;
+    openPopup: () => void;
+    closePopup: () => void;
+}
+
+export interface responseMessage {
+    type: boolean; // if true Success, else Error
+    status?: string;
+    descrip?: string;
+}
+
 export const botStatusExplanations = [
     {
         status: 'Active',
@@ -46,5 +58,9 @@ export const botStatusExplanations = [
     {
         status: 'Stopped',
         desc: 'The bot has been stopped, either automatically or manually. And most probably will auto restart in 30-40 seconds.',
+    },
+    {
+        status: 'Active | Processing + Start Btn',
+        desc: 'The bot is in trouble, need immediate attention.',
     },
 ];

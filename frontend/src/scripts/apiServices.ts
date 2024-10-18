@@ -34,3 +34,34 @@ export const addNewBot = async (formData: {
         throw error;
     }
 };
+
+export const addNewCompany = async (formData: {
+    company_name: string;
+    company_link: string;
+}) => {
+    if (!apiUrl) {
+        throw new Error('API URL is not defined');
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/add-company`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to add bot');
+        }
+
+        const data = await response.json();
+        console.log('Bot added successfully:', data);
+        return data;
+    } catch (error) {
+        console.error('Error adding bot:', error);
+        throw error;
+    }
+};

@@ -28,6 +28,10 @@ export const botStatusExplanations = [
         desc: 'Bot working on the posts.',
     },
     {
+        status: 'Captcha/Code',
+        desc: 'Manual verification required.',
+    },
+    {
         status: 'Error',
         desc: 'A general error occurred during bot operation.',
     },

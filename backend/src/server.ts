@@ -21,8 +21,9 @@ app.use(express.json());
 const lastFileSizes: { [key: string]: number } = {};
 const botInactiveSince: { [logFilePath: string]: string | undefined } = {};
 
-// Path to the users data JSON file
+// Path to the data JSON files
 const usersDataPath = path.join(process.cwd(), 'data', 'users-data.json');
+const companiesDataPath = path.join(process.cwd(), 'data', 'companies-data.json');
 
 function getLatestStatus(logFilePath: string): { status: string, postCount: number, inactiveSince?: string } {
     try {
@@ -139,6 +140,43 @@ app.post('/add-bot', async (req: any, res: any) => {
         return res.status(500).send({ error: result.error });
     }
     res.send({ status: result.status });
+});
+
+app.post('/add-company', async (req: any, res: any) => {
+    const { company_name, company_link } = req.body;
+
+    // Check for missing fields
+    if (!company_name || !company_link) {
+        return res.status(400).json({ error: 'Company name and link are required' });
+    }
+
+    try {
+        // Read the existing companies data
+        const data = await promiseFs.readFile(companiesDataPath, 'utf-8');
+        const companiesData = JSON.parse(data);
+
+        // Check if the company already exists
+        const companyExists = companiesData.companies.some((company: { name: string; link: string }) =>
+            company.name.toLowerCase() === company_name.toLowerCase() ||
+            company.link === company_link
+        );
+
+        if (companyExists) {
+            return res.status(409).json({ error: 'Company already exists' });
+        }
+
+        // Add the new company
+        companiesData.companies.push({ name: company_name, link: company_link });
+
+        // Write the updated data back to the file
+        await promiseFs.writeFile(companiesDataPath, JSON.stringify(companiesData, null, 2));
+
+        // Send a success response
+        res.status(201).json({ status: 'Company added successfully; bots will visit after completing one lifecycle.' });
+    } catch (error) {
+        console.error('Error adding company:', error);
+        res.status(500).json({ error: 'An error occurred while adding the company' });
+    }
 });
 
 app.post('/start-bot', async (req: any, res: any) => {

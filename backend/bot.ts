@@ -6,12 +6,16 @@ import path from 'path';
 import fs from 'fs';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
-import companiesData from './data/companies-data.json';
 import { BrowserProfile, Company } from './scripts/types';
 
 puppeteer.use(StealthPlugin());
 
-const companies: Company[] = companiesData.companies;
+// Move the file reading logic into a function
+function getCompaniesData() {
+    const companiesData = JSON.parse(fs.readFileSync('./data/companies-data.json', 'utf-8'));
+    return companiesData.companies;
+}
+
 const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
@@ -95,7 +99,7 @@ async function runBot() {
             await typeWithHumanLikeSpeed(page, '#username', username, logger);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
             await typeWithHumanLikeSpeed(page, '#password', password, logger);
-            
+
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
             await page.click('.login__form_action_container button');
@@ -132,7 +136,11 @@ async function runBot() {
             await performHumanActions(page, logger);
             await likeRandomPosts(page, noOfRandomPostsToReact, logger);
 
+            const companies: Company[] = getCompaniesData(); // Dynamically read the companies data
+            companies.sort(() => Math.random() - 0.5); // Simple one-liner shuffle
+
             for (const company of companies) {
+                console.log(company, " :: ", companies);
                 if (company && company.link) {
                     await performLinkedInSearchAndLike(page, company.name, logger, company.link);
                 }

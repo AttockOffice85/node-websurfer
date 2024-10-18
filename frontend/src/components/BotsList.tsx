@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, botStatusExplanations } from '../scripts/types';
-import { usePopupUserFormStore } from '../store/usePopupStore';
+import { usePopupCompanyFormStore, usePopupUserFormStore } from '../store/usePopupStore';
 import UserModal from '../models/UserModal';
+import CompanyModal from '../models/CompanyModal';
 const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotsList: React.FC = () => {
@@ -16,6 +17,7 @@ const BotsList: React.FC = () => {
     const [noOfActiveBots, setNoOfActiveBots] = useState<number>(0);
     const [botsAttentionReq, setBotsAttentionReq] = useState<number>(0);
     const { openPopup } = usePopupUserFormStore();
+    const { openPopup: companyPopup } = usePopupCompanyFormStore();
 
     useEffect(() => {
         const fetchBots = async () => {
@@ -118,7 +120,7 @@ const BotsList: React.FC = () => {
             <div className='flex justify-between items-center mb-3'>
                 <h1 className='text-2xl font-bold'>Bots List</h1>
                 <p className='bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md'>
-                    <strong>Notice:</strong> No need to refresh the page! Logs are automatically updated every 5 seconds.
+                    <strong>Notice:</strong> No need to refresh the page! Status are automatically updated every 5 seconds.
                 </p>
             </div>
 
@@ -132,10 +134,14 @@ const BotsList: React.FC = () => {
                 <p className="flex justify-start items-baseline gap-2">
                     <strong>Bots require attention: </strong>  <span className='text-blue-500'>{botsAttentionReq}</span>
                 </p>
-                <div className="flex-1">
+                <div className="flex-1 flex justify-end items-center gap-3.5">
                     {/* Button to open the popup */}
                     <button onClick={openPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
                         Add New Bot
+                    </button>
+                    {/* Button to open the popup */}
+                    <button onClick={companyPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
+                        Add New Company
                     </button>
                 </div>
             </div>
@@ -197,6 +203,7 @@ const BotsList: React.FC = () => {
 
             {/* Modals placement */}
             <UserModal />
+            <CompanyModal />
             {/* Modals placement */}
         </div>
     );

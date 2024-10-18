@@ -29,7 +29,11 @@ const UserModal: React.FC = () => {
                 formErrors[error.path[0] as 'email' | 'password'] = error.message;
             });
             setZodErrors(formErrors);
+            setTimeout(() => {
+                setDisableSubmitBtn(false);
+            }, 5000);
         } else {
+            setZodErrors({});
             try {
                 const response = await addNewBot(formData);
                 console.log('response::', response);

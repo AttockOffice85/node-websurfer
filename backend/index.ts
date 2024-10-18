@@ -8,8 +8,11 @@ import Logger from './scripts/logger';
 
 dotenv.config();
 
-const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
-const users = usersData.users;
+function getUsersData() {
+    const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
+    return usersData.users;
+}
+
 const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
 
 // New map to track bot status
@@ -51,6 +54,7 @@ function runBot(user: any) {
 }
 let retryNewUser = 0;
 export async function startBot(username: string) {
+    const users = getUsersData();
     console.log(users, "USERNAME: ", username);
     const user = users.find((u: { username: string; }) => u.username.split('@')[0] === username);
     if (user) {
@@ -69,6 +73,7 @@ export async function startBot(username: string) {
             startBot(username);
         }
     }
+    retryNewUser = 0;
 }
 
 export function stopBot(username: string) {
@@ -82,6 +87,7 @@ export function stopBot(username: string) {
 }
 
 function main() {
+    const users = getUsersData();
     const botsToRun = Math.min(noOfBots, users.length);
     users.slice(0, botsToRun).forEach(runBot);
 }

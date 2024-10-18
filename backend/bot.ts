@@ -100,7 +100,6 @@ async function runBot() {
 
             await page.click('.login__form_action_container button');
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-            await page.waitForNavigation();
 
             console.log("Login successful. Proceeding to home page.");
         } else if (page.url() === "https://www.linkedin.com/feed/") {
@@ -108,6 +107,7 @@ async function runBot() {
         } else {
             logger.log('Unknown Error In Login Process...');
         }
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
         if (page.url().includes('checkpoint/challenge/')) {
             logger.log('Captcha/Code Verification required...');

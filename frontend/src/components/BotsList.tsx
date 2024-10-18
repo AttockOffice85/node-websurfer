@@ -100,7 +100,7 @@ const BotsList: React.FC = () => {
             case 'Stopped':
                 return 'text-red-800';
             case 'Captcha/Code':
-                return 'text-xl italic animate-pulse text-white bg-green-600';
+                return 'text-xl italic animate-pulse text-white bg-red-600';
             case 'Starting':
                 return 'text-yellow-800';
             case 'Processing...':

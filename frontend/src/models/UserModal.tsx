@@ -7,7 +7,7 @@ import { responseMessage } from '../scripts/types';
 
 const UserModal: React.FC = () => {
     const { isOpen, closePopup } = usePopupUserFormStore();
-    const [formData, setFormData] = useState({ email: '', password: '', apiKey: '', country: '', city: '' });
+    const [formData, setFormData] = useState({ email: '', password: '', ip_address: '', ip_port: '', ip_username: '', ip_password: '' });
     const [zodErrors, setZodErrors] = useState<{ email?: string; password?: string }>({});
     const [resMsg, setResMsg] = useState<responseMessage | null>(null); // Track the response message
     const [disableSubmitBtn, setDisableSubmitBtn] = useState<boolean>(false); // Track the response message
@@ -52,7 +52,7 @@ const UserModal: React.FC = () => {
                 setTimeout(() => {
                     // if (resMsg && !resMsg.type) {
                     closePopup();
-                    setFormData({ email: '', password: '', apiKey: '', country: '', city: '' });
+                    setFormData({ email: '', password: '', ip_address: '', ip_port: '', ip_username: '', ip_password: '' });
                     setResMsg(null);
                     // }
                     setDisableSubmitBtn(false);
@@ -107,41 +107,55 @@ const UserModal: React.FC = () => {
                         {zodErrors.password && <p className="text-red-500">{zodErrors.password}</p>}
                     </div>
 
-                    <h6 className="text-lg font-semibold">Other Info <strong className='italic text-xs'>(not required for now)</strong></h6>
-                    <div className="mb-4">
-                        <label className="block font-bold mb-1">API Key</label>
-                        <input
-                            name="apiKey"
-                            type="text"
-                            value={formData.apiKey}
-                            onChange={handleChange}
-                            className="border p-2 w-full bg-gray-200 cursor-not-allowed"
-                            disabled
-                        />
+                    <h6 className="text-lg font-semibold">Proxy Info <strong className='italic text-xs hidden'>(not required for now)</strong></h6>
+
+                    <div className="flex justify-between gap-2 items-center">
+                        <div className="mb-4 w-4/5">
+                            <label className="block font-bold mb-1">IP Address</label>
+                            <input
+                                name="ip_address"
+                                type="text"
+                                value={formData.ip_address}
+                                onChange={handleChange}
+                                className="border p-2 w-full"
+                                disabled={false}
+                            />
+                        </div>
+                        <div className="mb-4 w-1/5">
+                            <label className="block font-bold mb-1">Port</label>
+                            <input
+                                name="ip_port"
+                                type="text"
+                                value={formData.ip_port}
+                                onChange={handleChange}
+                                className="border p-2 w-full"
+                                disabled={false}
+                            />
+                        </div>
                     </div>
 
                     <div className="flex justify-between gap-2 items-center">
                         <div className="mb-4 w-3/5">
-                            <label className="block font-bold mb-1">Country</label>
+                            <label className="block font-bold mb-1">IP Username</label>
                             <input
-                                name="country"
+                                name="ip_username"
                                 type="text"
-                                value={formData.country}
+                                value={formData.ip_username}
                                 onChange={handleChange}
-                                className="border p-2 w-full bg-gray-200 cursor-not-allowed"
-                                disabled
+                                className="border p-2 w-full"
+                                disabled={false}
                             />
                         </div>
 
                         <div className="mb-4 w-2/5">
-                            <label className="block font-bold mb-1">City</label>
+                            <label className="block font-bold mb-1">IP Password</label>
                             <input
-                                name="city"
+                                name="ip_password"
                                 type="text"
-                                value={formData.city}
+                                value={formData.ip_password}
                                 onChange={handleChange}
-                                className="border p-2 w-full bg-gray-200 cursor-not-allowed"
-                                disabled
+                                className="border p-2 w-full"
+                                disabled={false}
                             />
                         </div>
                     </div>

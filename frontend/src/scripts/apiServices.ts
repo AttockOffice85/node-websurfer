@@ -4,9 +4,10 @@ const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 export const addNewBot = async (formData: {
     email: string;
     password: string;
-    apiKey?: string;
-    country?: string;
-    city?: string;
+    ip_address?: string;
+    ip_port?: string;
+    ip_username?: string;
+    ip_password?: string;
 }) => {
     if (!apiUrl) {
         throw new Error('API URL is not defined');

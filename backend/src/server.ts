@@ -134,8 +134,8 @@ app.get('/logs/:username', (req, res) => {
 });
 
 app.post('/add-bot', async (req: any, res: any) => {
-    const { email, password, apiKey } = req.body;
-    const result = await handleBotStart(email, password, apiKey, true);
+    const { email, password, ip_address, ip_port, ip_username, ip_password } = req.body;
+    const result = await handleBotStart(email, password, ip_address, ip_port, ip_username, ip_password, true);
     if (result.error) {
         return res.status(500).send({ error: result.error });
     }
@@ -181,7 +181,7 @@ app.post('/add-company', async (req: any, res: any) => {
 
 app.post('/start-bot', async (req: any, res: any) => {
     const { username } = req.body;
-    const result = await handleBotStart(username, undefined, undefined, false);  // No need for password/apiKey when starting an existing user
+    const result = await handleBotStart(username, undefined, undefined, undefined, undefined, undefined, false);  // No need for password/apiKey when starting an existing user
     if (result.error) {
         return res.status(500).send({ error: result.error });
     }
@@ -285,7 +285,7 @@ function updateInactiveSince(logFilePath: string): string {
     return now;
 }
 
-async function handleBotStart(email: string, password?: string, apiKey?: string, isNewUser?: boolean): Promise<{ status: string; error?: string }> {
+async function handleBotStart(email: string, password?: string, ip_address?: string, ip_port?: string, ip_username?: string, ip_password?: string, isNewUser?: boolean): Promise<{ status: string; error?: string }> {
     let username: string = email;
     if (email.includes('@')) {
         username = email.split('@')[0];
@@ -313,7 +313,10 @@ async function handleBotStart(email: string, password?: string, apiKey?: string,
             const newUser = {
                 username: email,
                 password: password || 'defaultPassword',
-                huggingFaceApiKey: apiKey || 'defaultApiKey',
+                ip_address: ip_address || 'ip_address',
+                ip_port: ip_port || 'ip_port',
+                ip_username: ip_username || 'ip_username',
+                ip_password: ip_password || 'ip_password',
             };
 
             // Add the new user

@@ -3,9 +3,10 @@ import { z } from 'zod';
 export const userFormSchema = z.object({
     email: z.string().email({ message: 'Invalid email address' }),
     password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
-    apiKey: z.string().optional(),
-    country: z.string().optional(),
-    city: z.string().optional(),
+    ip_address: z.string().min(2, { message: 'Kindly provide correct data for the ipAddress' }),
+    ip_port: z.string().min(2, { message: 'Kindly provide correct data for the ipPort' }),
+    ip_username: z.string().min(2, { message: 'Kindly provide correct data for the ipUsername' }),
+    ip_password: z.string().min(2, { message: 'Kindly provide correct data for the ipPassword' }),
 });
 
 export const companyFormSchema = z.object({

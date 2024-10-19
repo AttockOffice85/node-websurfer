@@ -20,7 +20,13 @@ const botStatus: { [key: string]: boolean } = {};
 
 function runBot(user: any) {
     const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
-        env: { ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password }
+        env: {
+            ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password,
+            IP_ADDRESS: user.ip_address,
+            IP_PORT: user.ip_port,
+            IP_USERNAME: user.ip_username,
+            IP_PASSWORD: user.ip_password,
+        }
     });
 
     let botUserName = user.username.split('@')[0];

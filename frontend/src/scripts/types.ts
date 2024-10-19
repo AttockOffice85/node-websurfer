@@ -28,8 +28,8 @@ export const botStatusExplanations = [
         desc: 'Bot working on the posts.',
     },
     {
-        status: 'Captcha/Code',
-        desc: 'Manual verification required.',
+        status: 'Captcha/Code | IP Config',
+        desc: 'Manual verification/attention required.',
     },
     {
         status: 'Error',

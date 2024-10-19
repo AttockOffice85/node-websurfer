@@ -7,6 +7,8 @@ import fs from 'fs';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
 import { BrowserProfile, Company } from './scripts/types';
+import { confirmIPConfiguration } from './src/utils';
+import { stopBot } from './index';
 
 puppeteer.use(StealthPlugin());
 
@@ -50,8 +52,12 @@ class BrowserProfileManager {
 async function runBot() {
     const username = process.env.BOT_USERNAME;
     const password = process.env.BOT_PASSWORD;
+    const ip_address = process.env.IP_ADDRESS;
+    const ip_port = process.env.IP_PORT;
+    const ip_username = process.env.IP_USERNAME;
+    const ip_password = process.env.IP_PASSWORD;
 
-    if (!username || !password) {
+    if (!username || !password || !ip_address || !ip_port || !ip_username || !ip_password) {
         console.error('Bot credentials not provided');
         process.exit(1);
     }
@@ -75,13 +81,29 @@ async function runBot() {
         browser = await puppeteer.launch({
             headless: headlessBrowser === 'true' ? true : false,
             userDataDir: browserProfilePath,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: ['--no-sandbox', '--disable-setuid-sandbox',
+                `--proxy-server=http://${ip_address}:${ip_port}`,
+                '--disable-web-security', // Temporarily disable web security
+                '--ignore-certificate-errors', // Ignore SSL certificate errors
+                '--enable-logging', // Enable logging
+                '--v=1' // Verbose logging
+            ]
         });
 
         let pages = await browser.pages();
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
         page = pages[0];
+        await page.authenticate({ username: ip_username, password: ip_password });
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
+
+        const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
+
+        if (!isIPConfigured) {
+            logger.error('IP configuration failed, after 3 attempts. Stoping bot from further process.');
+            stopBot(username);
+        }
+
         await page.setViewport({ width: 1200, height: 1080 });
 
         // Login process

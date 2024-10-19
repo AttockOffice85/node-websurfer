@@ -274,7 +274,7 @@ function formatDate(date: Date): string {
 }
 
 function getErrorStatus(line: string): string | null {
-    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped', 'Captcha/Code'];
+    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped', 'Captcha/Code', 'IP Config'];
     const matchedError = errors.find(error => line.includes(error));
     return matchedError || null;
 }

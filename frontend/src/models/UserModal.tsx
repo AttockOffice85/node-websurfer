@@ -84,7 +84,7 @@ const UserModal: React.FC = () => {
                 <form onSubmit={handleSubmit}>
                     <h6 className="text-lg font-semibold">LinkedIn Info</h6>
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">Email</label>
+                        <label className="block font-bold mb-1">Email <span className="text-red-300">*</span></label>
                         <input
                             name="email"
                             type="email"
@@ -96,7 +96,7 @@ const UserModal: React.FC = () => {
                     </div>
 
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">Password</label>
+                        <label className="block font-bold mb-1">Password <span className="text-red-300">*</span></label>
                         <input
                             name="password"
                             type="password"
@@ -107,7 +107,7 @@ const UserModal: React.FC = () => {
                         {zodErrors.password && <p className="text-red-500">{zodErrors.password}</p>}
                     </div>
 
-                    <h6 className="text-lg font-semibold">Proxy Info <strong className='italic text-xs hidden'>(not required for now)</strong></h6>
+                    <h6 className="text-lg font-semibold">Proxy Info <strong className='italic text-xs'>(not required. bot will run on default IP address)</strong></h6>
 
                     <div className="flex justify-between gap-2 items-center">
                         <div className="mb-4 w-4/5">

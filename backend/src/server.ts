@@ -330,10 +330,10 @@ async function handleBotStart(email: string, password?: string, ip_address?: str
             const newUser = {
                 username: email,
                 password: password || 'defaultPassword',
-                ip_address: ip_address || 'ip_address',
-                ip_port: ip_port || 'ip_port',
-                ip_username: ip_username || 'ip_username',
-                ip_password: ip_password || 'ip_password',
+                ip_address: ip_address,
+                ip_port: ip_port,
+                ip_username: ip_username,
+                ip_password: ip_password,
             };
 
             // Add the new user

@@ -97,6 +97,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
     for (let i = 0; i < Math.floor(Math.random() * 4) + 3; i++) { // Scroll and interact 3-6 times
         await scrollRandomly();  // Scroll down, possibly scroll back up
         await selectRandomText(); // Select random text
+        await performLinkedInFollowActions(page, logger);
         await wait(2000, 5000);   // Wait between 2-5 seconds after selecting text
     }
 
@@ -281,13 +282,13 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         // Extract the company link
         const linkElement = await result.$('a.app-aware-link');
         const selectedLink = linkElement ? await page.evaluate(el => el.href, linkElement) : null;
-        
+
         if (selectedLink === companyURL) {
             logger.log(`link matched: ${selectedLink}`);
 
             await page.goto(selectedLink);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-            
+
             await goToAndLikeCompanyPosts(page, logger);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
             break;
@@ -398,4 +399,36 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
         logger.error("goToAndLikeCompanyPosts::> Couldn't find the 'Posts' tab.");
     }
     logger.log('Finished fun:: goToAndLikeCompanyPosts');
+}
+
+// New function to follow users
+export async function performLinkedInFollowActions(page: Page, logger: Logger) {
+    logger.log('Starting fun:: performLinkedInFollowActions');
+
+    const wait = async (min: number, max: number) => {
+        const time = min + Math.random() * (max - min);
+        await new Promise(resolve => setTimeout(resolve, time));
+    };
+
+    const followUsers = async () => {
+        const followButtons = await page.$$('button.follow.feed-follows-module-recommendation__follow-btn, button.follow.update-components-actor__follow-button');
+
+        // Randomly follow a few users
+        for (let i = 0; i < Math.floor(Math.random() * 3) + 1; i++) { // Follow 1-3 users
+            if (followButtons.length > 0) {
+                const randomButtonIndex = Math.floor(Math.random() * followButtons.length);
+                const buttonToClick = followButtons[randomButtonIndex];
+                await buttonToClick.click();
+                logger.log('Clicked follow button');
+
+                // Wait after clicking the follow button
+                await wait(20000, 50000); // Wait between 20-50 seconds
+            }
+        }
+    };
+
+    // Call followUsers function to execute the following action
+    await followUsers();
+
+    logger.log('Finished fun:: performLinkedInFollowActions');
 }

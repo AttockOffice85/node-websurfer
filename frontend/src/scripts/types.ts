@@ -22,6 +22,10 @@ export interface responseMessage {
 
 export const botStatusExplanations = [
     {
+        status: '! log file',
+        desc: 'No logs fond for the bot. Start the bot!',
+    },
+    {
         status: 'Active',
         desc: 'Bot is live and working.',
     },

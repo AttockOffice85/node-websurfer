@@ -109,8 +109,19 @@ app.get('/all-bots', (req, res) => {
                 const logFilePath = path.join(logDir, `${botName}.log`); // Construct the log file path
                 const ip_address = user.ip_address;
                 const ip_port = user.ip_port;
-                // Assuming getLatestStatus works with usernames now
-                const { status, postCount, inactiveSince } = getLatestStatus(logFilePath);
+
+                // fun:: getLatestStatus works with usernames now
+                let status: string = '! log file';
+                let postCount: any = 0;
+                let inactiveSince: string | undefined = '';
+
+                // Check if the log file exists
+                if (fs.existsSync(logFilePath)) {
+                    // Get the latest status if the log file exists
+                    ({ status, postCount, inactiveSince } = getLatestStatus(logFilePath));
+                } else {
+                    console.warn(`Log file not found for bot: ${botName}`);
+                }
 
                 const botInfo = {
                     name: botName,

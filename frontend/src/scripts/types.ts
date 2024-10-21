@@ -4,6 +4,8 @@ export interface Bot {
     postCount: number;
     inactiveSince?: string;
     isRunning: boolean;
+    ip_address?: string;
+    ip_port?: string;
 }
 
 export interface PopupState {

@@ -154,6 +154,8 @@ const BotsList: React.FC = () => {
                         <th className='py-2 px-4 text-start border-b'>Bot Name</th>
                         <th className='py-2 px-4 text-start border-b'>Status</th>
                         <th className='hidden py-2 px-4 text-start border-b'>Post Count</th>
+                        <th className='py-2 px-4 text-start border-b'>IP Address</th>
+                        <th className='py-2 px-4 text-start border-b'>IP Port</th>
                         <th className='py-2 px-4 text-start border-b'>Actions</th>
                     </tr>
                 </thead>
@@ -169,6 +171,8 @@ const BotsList: React.FC = () => {
                                 {bot.status}
                             </td>
                             <td className='hidden py-2 px-4 border-b'>{bot.postCount}</td>
+                            <td className='py-2 px-4 border-b'>{bot.ip_address}</td>
+                            <td className='py-2 px-4 border-b'>{bot.ip_port}</td>
                             <td className='py-2 px-4 border-b'>
                                 {bot.isRunning ? (
                                     <button onClick={() => stopBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>

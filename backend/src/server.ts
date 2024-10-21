@@ -91,19 +91,31 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
 }
 
 app.get('/all-bots', (req, res) => {
+    // Path to bot logs directory
     const logDir = path.join(__dirname, '..', 'botLogs');
-    fs.readdir(logDir, (err, files) => {
+
+    // Read the users-data.json file
+    fs.readFile(usersDataPath, 'utf8', (err, data) => {
         if (err) {
             console.error(err);
-            return res.status(500).send('Error reading bot logs directory');
+            return res.status(500).send('Error reading users data file');
         }
-        const botsStatus = files
-            .filter(file => file.endsWith('.log'))
-            .map(file => {
-                const botName = file.replace('.log', '');
-                const { status, postCount, inactiveSince } = getLatestStatus(path.join(logDir, file));
+
+        try {
+            const users = JSON.parse(data).users;
+            const botsStatus = users.map((user: { username: string; ip_address: string; ip_port: string }) => {
+                const email = user.username;
+                const botName = email.split('@')[0]; // Extract the part before '@'
+                const logFilePath = path.join(logDir, `${botName}.log`); // Construct the log file path
+                const ip_address = user.ip_address;
+                const ip_port = user.ip_port;
+                // Assuming getLatestStatus works with usernames now
+                const { status, postCount, inactiveSince } = getLatestStatus(logFilePath);
+
                 const botInfo = {
                     name: botName,
+                    ip_address,
+                    ip_port,
                     status,
                     postCount,
                     inactiveSince,
@@ -111,7 +123,12 @@ app.get('/all-bots', (req, res) => {
                 };
                 return botInfo;
             });
-        res.json(botsStatus);
+
+            res.json(botsStatus);
+        } catch (parseError) {
+            console.error(parseError);
+            res.status(500).send('Error parsing users data file');
+        }
     });
 });
 

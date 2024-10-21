@@ -57,7 +57,7 @@ async function runBot() {
     const ip_username = process.env.IP_USERNAME;
     const ip_password = process.env.IP_PASSWORD;
 
-    if (!username || !password || !ip_address || !ip_port || !ip_username || !ip_password) {
+    if (!username || !password) {
         console.error('Bot credentials not provided');
         process.exit(1);
     }
@@ -82,11 +82,13 @@ async function runBot() {
             headless: headlessBrowser === 'true' ? true : false,
             userDataDir: browserProfilePath,
             args: ['--no-sandbox', '--disable-setuid-sandbox',
-                `--proxy-server=http://${ip_address}:${ip_port}`,
-                '--disable-web-security', // Temporarily disable web security
-                '--ignore-certificate-errors', // Ignore SSL certificate errors
-                '--enable-logging', // Enable logging
-                '--v=1' // Verbose logging
+                ...(ip_address && ip_port ? [
+                    `--proxy-server=http://${ip_address}:${ip_port}`,
+                    '--disable-web-security', // Temporarily disable web security
+                    '--ignore-certificate-errors', // Ignore SSL certificate errors
+                    '--enable-logging', // Enable logging
+                    '--v=1' // Verbose logging
+                ] : [])
             ]
         });
 
@@ -94,14 +96,19 @@ async function runBot() {
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
         page = pages[0];
-        await page.authenticate({ username: ip_username, password: ip_password });
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
+        if (ip_address && ip_port && ip_username && ip_password) {
+            await page.authenticate({ username: ip_username, password: ip_password });
 
-        const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
 
-        if (!isIPConfigured) {
-            logger.error('IP configuration failed, after 3 attempts. Stoping bot from further process.');
-            stopBot(username);
+            const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
+
+            if (!isIPConfigured) {
+                logger.error('IP configuration failed, after 3 attempts. Stoping bot from further process.');
+                stopBot(username);
+            }
+        } else {
+            logger.log("Continue Without Proxy!");
         }
 
         await page.setViewport({ width: 1200, height: 1080 });

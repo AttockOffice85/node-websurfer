@@ -132,3 +132,6 @@ dist
 # misc 
 misc
 browsers
+
+/frontend
+/backend

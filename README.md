@@ -50,9 +50,11 @@ Before running this project, ensure you have the following installed on your mac
 
     Example `.env` file:
     ```env
+    HEADLESS_BROWSER=true
     NO_OF_COMPANY_POSTS=5
     NO_OF_RANDOM_POSTS=5
     NO_OF_BOTS=2
+    BOTS_NO_OF_RETRY_CRASH=2
     SERVER_PORT=8080
     ```
 
@@ -95,6 +97,8 @@ Before running this project, ensure you have the following installed on your mac
 
 The following environment variables are required for the bot to function:
 
+- **`HEADLESS_BROWSER`**: Puppeteer browser will not show up on screen if this variable is set to _true_.
+- **`BOTS_NO_OF_RETRY_CRASH`**: The number of times a bot can retry in case of any issue.
 - **`NO_OF_COMPANY_POSTS`**: The number of company posts to interact with during each bot run.
 - **`NO_OF_RANDOM_POSTS`**: The number of posts on home to interact with during each bot run.
 - **`NO_OF_BOTS`**: Set no of bots equal to no of users defined in the users-data.json file.

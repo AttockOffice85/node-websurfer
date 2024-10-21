@@ -6,12 +6,18 @@ import path from 'path';
 import fs from 'fs';
 import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
-import companiesData from './data/companies-data.json';
 import { BrowserProfile, Company } from './scripts/types';
+import { confirmIPConfiguration } from './src/utils';
+import { stopBot } from './index';
 
 puppeteer.use(StealthPlugin());
 
-const companies: Company[] = companiesData.companies;
+// Move the file reading logic into a function
+function getCompaniesData() {
+    const companiesData = JSON.parse(fs.readFileSync('./data/companies-data.json', 'utf-8'));
+    return companiesData.companies;
+}
+
 const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
@@ -46,6 +52,10 @@ class BrowserProfileManager {
 async function runBot() {
     const username = process.env.BOT_USERNAME;
     const password = process.env.BOT_PASSWORD;
+    const ip_address = process.env.IP_ADDRESS;
+    const ip_port = process.env.IP_PORT;
+    const ip_username = process.env.IP_USERNAME;
+    const ip_password = process.env.IP_PASSWORD;
 
     if (!username || !password) {
         console.error('Bot credentials not provided');
@@ -71,13 +81,36 @@ async function runBot() {
         browser = await puppeteer.launch({
             headless: headlessBrowser === 'true' ? true : false,
             userDataDir: browserProfilePath,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: ['--no-sandbox', '--disable-setuid-sandbox',
+                ...(ip_address && ip_port ? [
+                    `--proxy-server=http://${ip_address}:${ip_port}`,
+                    '--disable-web-security', // Temporarily disable web security
+                    '--ignore-certificate-errors', // Ignore SSL certificate errors
+                    '--enable-logging', // Enable logging
+                    '--v=1' // Verbose logging
+                ] : [])
+            ]
         });
 
         let pages = await browser.pages();
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
         page = pages[0];
+        if (ip_address && ip_port && ip_username && ip_password) {
+            await page.authenticate({ username: ip_username, password: ip_password });
+
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
+
+            const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
+
+            if (!isIPConfigured) {
+                logger.error('IP configuration failed, after 3 attempts. Stoping bot from further process.');
+                stopBot(username);
+            }
+        } else {
+            logger.log("Continue Without Proxy!");
+        }
+
         await page.setViewport({ width: 1200, height: 1080 });
 
         // Login process
@@ -93,11 +126,13 @@ async function runBot() {
 
             // Type credentials with human-like speed
             await typeWithHumanLikeSpeed(page, '#username', username, logger);
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
             await typeWithHumanLikeSpeed(page, '#password', password, logger);
 
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
             await page.click('.login__form_action_container button');
-            await page.waitForNavigation();
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
             console.log("Login successful. Proceeding to home page.");
         } else if (page.url() === "https://www.linkedin.com/feed/") {
@@ -105,12 +140,36 @@ async function runBot() {
         } else {
             logger.log('Unknown Error In Login Process...');
         }
+        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+        if (page.url().includes('checkpoint/challenge/')) {
+            logger.log('Captcha/Code Verification required...');
+
+            // Wait for the user to manually resolve the captcha
+            await new Promise<void>((resolve) => {
+                const checkPage = async () => {
+                    const currentUrl = page?.url();
+                    if (currentUrl === "https://www.linkedin.com/feed/") {
+                        logger.log('Captcha verification successful. Continuing process...');
+                        resolve(); // Resolve the promise to continue the process
+                    } else {
+                        // Check again after a short delay
+                        setTimeout(checkPage, 3000); // Check every 3 seconds
+                    }
+                };
+                checkPage();
+            });
+        }
 
         while (true) {
             await performHumanActions(page, logger);
             await likeRandomPosts(page, noOfRandomPostsToReact, logger);
 
+            const companies: Company[] = getCompaniesData(); // Dynamically read the companies data
+            companies.sort(() => Math.random() - 0.5); // Simple one-liner shuffle
+
             for (const company of companies) {
+                console.log(company, " :: ", companies);
                 if (company && company.link) {
                     await performLinkedInSearchAndLike(page, company.name, logger, company.link);
                 }

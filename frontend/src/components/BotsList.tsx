@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, botStatusExplanations } from '../scripts/types';
+import { usePopupCompanyFormStore, usePopupUserFormStore } from '../store/usePopupStore';
+import UserModal from '../models/UserModal';
+import CompanyModal from '../models/CompanyModal';
 const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotsList: React.FC = () => {
@@ -12,6 +15,9 @@ const BotsList: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [noOfInactiveBots, setNoOfInactiveBots] = useState<number>(0);
     const [noOfActiveBots, setNoOfActiveBots] = useState<number>(0);
+    const [botsAttentionReq, setBotsAttentionReq] = useState<number>(0);
+    const { openPopup } = usePopupUserFormStore();
+    const { openPopup: companyPopup } = usePopupCompanyFormStore();
 
     useEffect(() => {
         const fetchBots = async () => {
@@ -25,6 +31,8 @@ const BotsList: React.FC = () => {
 
                 const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'].includes(bot.status));
 
+                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code', 'IP Config'].includes(bot.status));
+                setBotsAttentionReq(botsAttentionReqArr?.length);
                 setNoOfInactiveBots(botsInActiveArr.length);
                 const botsActive = data.length - botsInActiveArr.length;
                 setNoOfActiveBots(botsActive < 0 ? 0 : botsActive);
@@ -93,6 +101,9 @@ const BotsList: React.FC = () => {
             case 'Breaking forever':
             case 'Stopped':
                 return 'text-red-800';
+            case 'Captcha/Code':
+            case 'IP Config':
+                return 'text-xl italic animate-pulse text-white bg-red-600';
             case 'Starting':
                 return 'text-yellow-800';
             case 'Processing...':
@@ -110,17 +121,30 @@ const BotsList: React.FC = () => {
             <div className='flex justify-between items-center mb-3'>
                 <h1 className='text-2xl font-bold'>Bots List</h1>
                 <p className='bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md'>
-                    <strong>Notice:</strong> No need to refresh the page! Logs are automatically updated every 5 seconds.
+                    <strong>Notice:</strong> No need to refresh the page! Status are automatically updated every 5 seconds.
                 </p>
             </div>
 
-            <div className="mt-4 mb-3 w-full flex justify-start gap-6">
+            <div className="mt-4 mb-3 w-full flex justify-start items-center gap-6">
                 <p className="flex justify-start items-baseline gap-2">
                     <strong>Inactive Bots: </strong>  <span className='text-red-500'>{noOfInactiveBots}</span>
                 </p>
                 <p className="flex justify-start items-baseline gap-2">
                     <strong>Active Bots: </strong>  <span className='text-green-500'>{noOfActiveBots}</span>
                 </p>
+                <p className="flex justify-start items-baseline gap-2">
+                    <strong>Bots require attention: </strong>  <span className='text-blue-500'>{botsAttentionReq}</span>
+                </p>
+                <div className="flex-1 flex justify-end items-center gap-3.5">
+                    {/* Button to open the popup */}
+                    <button onClick={openPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
+                        Add New Bot
+                    </button>
+                    {/* Button to open the popup */}
+                    <button onClick={companyPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
+                        Add New Company
+                    </button>
+                </div>
             </div>
 
             <table className='min-w-full bg-white border border-gray-300 rounded-lg shadow-md'>
@@ -130,6 +154,8 @@ const BotsList: React.FC = () => {
                         <th className='py-2 px-4 text-start border-b'>Bot Name</th>
                         <th className='py-2 px-4 text-start border-b'>Status</th>
                         <th className='hidden py-2 px-4 text-start border-b'>Post Count</th>
+                        <th className='py-2 px-4 text-start border-b'>IP Address</th>
+                        <th className='py-2 px-4 text-start border-b'>IP Port</th>
                         <th className='py-2 px-4 text-start border-b'>Actions</th>
                     </tr>
                 </thead>
@@ -145,6 +171,8 @@ const BotsList: React.FC = () => {
                                 {bot.status}
                             </td>
                             <td className='hidden py-2 px-4 border-b'>{bot.postCount}</td>
+                            <td className='py-2 px-4 border-b'>{bot.ip_address}</td>
+                            <td className='py-2 px-4 border-b'>{bot.ip_port}</td>
                             <td className='py-2 px-4 border-b'>
                                 {bot.isRunning ? (
                                     <button onClick={() => stopBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>
@@ -177,6 +205,11 @@ const BotsList: React.FC = () => {
                     }
                 </ul>
             </div>
+
+            {/* Modals placement */}
+            <UserModal />
+            <CompanyModal />
+            {/* Modals placement */}
         </div>
     );
 };

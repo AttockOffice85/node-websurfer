@@ -4,6 +4,20 @@ export interface Bot {
     postCount: number;
     inactiveSince?: string;
     isRunning: boolean;
+    ip_address?: string;
+    ip_port?: string;
+}
+
+export interface PopupState {
+    isOpen: boolean;
+    openPopup: () => void;
+    closePopup: () => void;
+}
+
+export interface responseMessage {
+    type: boolean; // if true Success, else Error
+    status?: string;
+    descrip?: string;
 }
 
 export const botStatusExplanations = [
@@ -14,6 +28,10 @@ export const botStatusExplanations = [
     {
         status: 'Processing...',
         desc: 'Bot working on the posts.',
+    },
+    {
+        status: 'Captcha/Code | IP Config',
+        desc: 'Manual verification/attention required.',
     },
     {
         status: 'Error',
@@ -46,5 +64,9 @@ export const botStatusExplanations = [
     {
         status: 'Stopped',
         desc: 'The bot has been stopped, either automatically or manually. And most probably will auto restart in 30-40 seconds.',
+    },
+    {
+        status: 'Active | Processing + Start Btn',
+        desc: 'The bot is in trouble, need immediate attention.',
     },
 ];

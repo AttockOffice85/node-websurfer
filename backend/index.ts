@@ -8,8 +8,11 @@ import Logger from './scripts/logger';
 
 dotenv.config();
 
-const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
-const users = usersData.users;
+function getUsersData() {
+    const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
+    return usersData.users;
+}
+
 const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
 
 // New map to track bot status
@@ -17,7 +20,13 @@ const botStatus: { [key: string]: boolean } = {};
 
 function runBot(user: any) {
     const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
-        env: { ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password }
+        env: {
+            ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password,
+            IP_ADDRESS: user.ip_address,
+            IP_PORT: user.ip_port,
+            IP_USERNAME: user.ip_username,
+            IP_PASSWORD: user.ip_password,
+        }
     });
 
     let botUserName = user.username.split('@')[0];
@@ -49,17 +58,28 @@ function runBot(user: any) {
     botProcesses[botUserName] = botProcess; // Store the bot process
     botStatus[botUserName] = true; // Set the bot status to running
 }
-
-export function startBot(username: string) {
+let retryNewUser = 0;
+export async function startBot(username: string) {
+    const users = getUsersData();
+    console.log(users, "USERNAME: ", username);
     const user = users.find((u: { username: string; }) => u.username.split('@')[0] === username);
     if (user) {
+        console.log(username, " :USERNAME: ", botProcesses[username]);
         if (!botProcesses[username]) { // Check if already running
             runBot(user);
             console.log(`Starting bot for ${username}`);
         } else {
             console.log(`Bot for ${username} is already running.`);
         }
+    } else {
+        console.log('Retrying: ', retryNewUser, " :User not found in the file: ", username)
+        if (retryNewUser < 3) {
+            retryNewUser++;
+            new Promise(resolve => setTimeout(resolve, 2000));
+            startBot(username);
+        }
     }
+    retryNewUser = 0;
 }
 
 export function stopBot(username: string) {
@@ -73,6 +93,7 @@ export function stopBot(username: string) {
 }
 
 function main() {
+    const users = getUsersData();
     const botsToRun = Math.min(noOfBots, users.length);
     users.slice(0, botsToRun).forEach(runBot);
 }

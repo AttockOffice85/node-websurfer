@@ -1,4 +1,4 @@
-import { Page } from 'puppeteer';
+import { ElementHandle, Page } from 'puppeteer';
 import Logger from './logger';
 import { generateRandomID } from '../src/utils';
 
@@ -27,7 +27,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
 
     // Scroll behavior - scroll down, then scroll back up, and then skip some content
     const scrollRandomly = async () => {
-        const scrollTimes = Math.floor(Math.random() * 3) + 1; // Scroll 1-3 times
+        const scrollTimes = Math.floor(Math.random() * 3) + 2; // Scroll 2-3 times
 
         for (let i = 0; i < scrollTimes; i++) {
             // Scroll down by random amounts between 300 to 800 pixels
@@ -102,14 +102,20 @@ export async function performHumanActions(page: Page, logger: Logger) {
             await scrollRandomly();  // Scroll down, possibly scroll back up
         }
 
-        // Select random text with 50-80% chance
-        if (randomValue >= 50 && randomValue <= 80) {
+        // Select random text with 30-80% chance
+        if (randomValue >= 30 && randomValue <= 80) {
             await selectRandomText(); // Select random text
         }
 
         // Perform LinkedIn follow action with 5-10% chance
         if (randomValue >= 5 && randomValue <= 10) {
             await performLinkedInFollowActions(page, logger); // Click follow button
+        }
+
+        // Perform LinkedIn connect, subscribe, join and accept action with 1-5% chance
+        if (randomValue >= 1 && randomValue <= 8) {
+            await performLinkedInNetworkActions(page, logger); // Click follow button
+            page.goBack();
         }
 
         // Wait between 2-5 seconds after each loop iteration
@@ -459,4 +465,105 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
     await followUsers();
 
     logger.log('Finished fun:: performLinkedInFollowActions');
+}
+
+// Function to perform LinkedIn Network Actions
+export async function performLinkedInNetworkActions(page: Page, logger: Logger) {
+    logger.log('Starting fun:: performLinkedInNetworkActions');
+
+    const wait = async (min: number, max: number) => {
+        const time = min + Math.random() * (max - min);
+        await new Promise(resolve => setTimeout(resolve, time));
+    };
+
+    // Hover and click on the "My Network" link
+    await page.hover('a[href*="linkedin.com/mynetwork"]');
+    await page.click('a[href*="linkedin.com/mynetwork"]');
+
+    // Wait for the new page to load properly
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+
+    logger.log('Navigated to My Network page');
+
+    await waitForElement(page, '.artdeco-card.artdeco-card--with-hover.discover-entity-type-card button.artdeco-button--secondary span.artdeco-button__text');
+
+    const allNetworkButtons = await page.$$('.artdeco-card.artdeco-card--with-hover.discover-entity-type-card button.artdeco-button--secondary span.artdeco-button__text');
+
+    // Hover over invitation buttons, then randomly click Ignore or Accept
+    const handleInvitations = async () => {
+        const invitationActions = await page.$$('.invitation-card__action-container button');
+        const totalInvitations = invitationActions.length;
+        const maxInvitationsToProcess = Math.floor(totalInvitations * 0.5); // Process up to 50%
+
+        for (let i = 0; i < maxInvitationsToProcess; i++) {
+            const randomIndex = Math.floor(Math.random() * invitationActions.length);
+            const ignoreBtn = invitationActions[randomIndex * 2]; // Assuming Ignore and Accept are in pairs
+            const acceptBtn = invitationActions[randomIndex * 2 + 1];
+
+            // Hover over both buttons
+            await ignoreBtn.hover();
+            await acceptBtn.hover();
+
+            // Randomly decide to click Ignore or Accept
+            if (Math.random() > 0.5) {
+                await acceptBtn.click();
+                logger.log('Accepted invitation');
+            } else {
+                await ignoreBtn.click();
+                logger.log('Ignored invitation');
+            }
+
+            // Wait before moving to the next invitation
+            await wait(2000, 4000); // Wait 2-4 seconds between actions
+        }
+    };
+
+    // Look for 'Connect' buttons and click randomly
+    const handleConnectButtons = async () => {
+        const connectButtons = (await Promise.all(allNetworkButtons.map(async (button) => {
+            const text = await button.evaluate(el => el.innerText);
+            logger.log(`in handleConnectButtons ;;;; ${text}`);
+            return text.includes('Connect') ? button : null;
+        }))).filter((button): button is ElementHandle<HTMLButtonElement> => button !== null); // Type guard
+
+        if (connectButtons.length > 0) {
+            const randomIndex = Math.floor(Math.random() * connectButtons.length);
+            await connectButtons[randomIndex].hover();
+            await connectButtons[randomIndex].click();
+            logger.log('Clicked Connect button');
+            await wait(3000, 5000); // Wait 3-5 seconds after clicking
+        }
+    };
+
+    // Look for 'Subscribe' buttons and click randomly
+    const handleSubscribeButtons = async () => {
+        const subscribeButtons = (await Promise.all(allNetworkButtons.map(async (button) => {
+            const text = await button.evaluate(el => el.innerText);
+            return text.includes('Subscribe') ? button : null;
+        }))).filter((button): button is ElementHandle<HTMLButtonElement> => button !== null); // Type guard
+
+        if (subscribeButtons.length > 0) {
+            const randomIndex = Math.floor(Math.random() * subscribeButtons.length);
+            await subscribeButtons[randomIndex].hover();
+            await subscribeButtons[randomIndex].click();
+            logger.log('Clicked Subscribe button');
+            await wait(3000, 5000); // Wait 3-5 seconds after clicking
+        }
+    };
+
+
+    const randomValue = Math.random() * 100; // Get a random value between 0 and 100
+
+    // Execute the various actions
+    if (randomValue >= 20 && randomValue <= 70) { // handleConnectButtons on chance 50%
+        await handleConnectButtons();
+    }
+    if (randomValue >= 40 && randomValue <= 60) { // handleInvitations on chance 20%
+        await handleInvitations();
+    }
+    if (randomValue >= 5 && randomValue <= 20) { // handleSubscribeButtons on chance 15%
+        await handleSubscribeButtons();
+    }
+
+    logger.log('Finished fun:: performLinkedInNetworkActions');
 }

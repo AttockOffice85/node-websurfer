@@ -95,10 +95,25 @@ export async function performHumanActions(page: Page, logger: Logger) {
 
     // Simulate spending more time on the page
     for (let i = 0; i < Math.floor(Math.random() * 4) + 3; i++) { // Scroll and interact 3-6 times
-        await scrollRandomly();  // Scroll down, possibly scroll back up
-        await selectRandomText(); // Select random text
-        await performLinkedInFollowActions(page, logger);
-        await wait(2000, 5000);   // Wait between 2-5 seconds after selecting text
+        const randomValue = Math.random() * 100; // Get a random value between 0 and 100
+
+        // Scroll randomly with 80-99% chance
+        if (randomValue >= 1 && randomValue <= 99) {
+            await scrollRandomly();  // Scroll down, possibly scroll back up
+        }
+
+        // Select random text with 50-80% chance
+        if (randomValue >= 50 && randomValue <= 80) {
+            await selectRandomText(); // Select random text
+        }
+
+        // Perform LinkedIn follow action with 5-10% chance
+        if (randomValue >= 5 && randomValue <= 10) {
+            await performLinkedInFollowActions(page, logger); // Click follow button
+        }
+
+        // Wait between 2-5 seconds after each loop iteration
+        await wait(2000, 5000);
     }
 
     logger.log('Finished fun:: performHumanActions');
@@ -401,7 +416,7 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
     logger.log('Finished fun:: goToAndLikeCompanyPosts');
 }
 
-// New function to follow users
+// Function to perform LinkedIn follow actions
 export async function performLinkedInFollowActions(page: Page, logger: Logger) {
     logger.log('Starting fun:: performLinkedInFollowActions');
 
@@ -413,16 +428,29 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
     const followUsers = async () => {
         const followButtons = await page.$$('button.follow.feed-follows-module-recommendation__follow-btn, button.follow.update-components-actor__follow-button');
 
-        // Randomly follow a few users
-        for (let i = 0; i < Math.floor(Math.random() * 3) + 1; i++) { // Follow 1-3 users
+        // Randomly follow fewer users (e.g., 1-2)
+        for (let i = 0; i < Math.floor(Math.random() * 2) + 1; i++) { // Follow 1-2 users
             if (followButtons.length > 0) {
                 const randomButtonIndex = Math.floor(Math.random() * followButtons.length);
                 const buttonToClick = followButtons[randomButtonIndex];
+
+                // Scroll the button into view before clicking
+                await page.evaluate((btn) => {
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, buttonToClick);
+                await wait(1000, 3000); // Wait 1-3 seconds after scrolling into view
+
+                // Click the follow button
                 await buttonToClick.click();
                 logger.log('Clicked follow button');
 
+                // Change the button's border to red after clicking
+                await page.evaluate((btn) => {
+                    btn.style.border = '2px solid red';
+                }, buttonToClick);
+
                 // Wait after clicking the follow button
-                await wait(20000, 50000); // Wait between 20-50 seconds
+                await wait(30000, 60000); // Increase the wait time (30-60 seconds)
             }
         }
     };

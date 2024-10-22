@@ -111,7 +111,7 @@ async function runBot() {
             logger.log("Continue Without Proxy!");
         }
 
-        await page.setViewport({ width: 1200, height: 1080 });
+        await page.setViewport({ width: 1920, height: 1080 });
 
         // Login process
         await page.goto('https://www.linkedin.com/login');

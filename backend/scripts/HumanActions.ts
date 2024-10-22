@@ -1,9 +1,14 @@
 import { ElementHandle, Page } from 'puppeteer';
 import Logger from './logger';
-import { generateRandomID } from '../src/utils';
+import { generateRandomID, dynamicWait } from '../src/utils';
+import { socialMediaConfigs } from '../config/SocialMedia'; // Import the social media config
 
 const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
 const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
+let platform = process.env.PLATFORM;
+if (!platform) platform = 'linkedin';
+
+const platformConfig = socialMediaConfigs[platform];
 
 // Utility function to wait for an element to appear with retries
 async function waitForElement(page: Page, selector: string, maxRetries: number = 5, delay: number = 1000) {
@@ -19,11 +24,6 @@ async function waitForElement(page: Page, selector: string, maxRetries: number =
 
 export async function performHumanActions(page: Page, logger: Logger) {
     logger.log('Starting fun:: performHumanActions');
-    // Function to wait for a random time
-    const wait = async (min: number, max: number) => {
-        const time = min + Math.random() * (max - min);
-        await new Promise(resolve => setTimeout(resolve, time));
-    };
 
     // Scroll behavior - scroll down, then scroll back up, and then skip some content
     const scrollRandomly = async () => {
@@ -36,7 +36,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
             });
 
             // Simulate reading by waiting a bit after scrolling
-            await wait(5000, 15000); // 5-15 seconds delay (simulate reading)
+            await dynamicWait(5000, 15000); // 5-15 seconds delay (simulate reading)
         }
 
         // Occasionally scroll back up
@@ -44,7 +44,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
             await page.evaluate(() => {
                 window.scrollBy(0, -(200 + Math.random() * 300)); // Scroll back up a bit
             });
-            await wait(3000, 8000); // 3-8 seconds delay (simulating thinking or checking back)
+            await dynamicWait(3000, 8000); // 3-8 seconds delay (simulating thinking or checking back)
         }
 
         // Scroll down again after "rechecking"
@@ -53,7 +53,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
         });
 
         // Simulate reading again
-        await wait(6000, 15000); // 6-15 seconds delay
+        await dynamicWait(6000, 15000); // 6-15 seconds delay
     };
 
     // Text selection behavior
@@ -107,19 +107,27 @@ export async function performHumanActions(page: Page, logger: Logger) {
             await selectRandomText(); // Select random text
         }
 
-        // Perform LinkedIn follow action with 5-10% chance
-        if (randomValue >= 5 && randomValue <= 10) {
-            await performLinkedInFollowActions(page, logger); // Click follow button
+        if (platformConfig.name === 'Facebook') {
+            await likeRandomPostsWithReactions(page, 5, logger);
         }
 
-        // Perform LinkedIn connect, subscribe, join and accept action with 1-5% chance
-        if (randomValue >= 1 && randomValue <= 8) {
-            await performLinkedInNetworkActions(page, logger); // Click follow button
-            page.goBack();
+        if (platformConfig.name === 'LinkedIn') {
+
+            // Perform LinkedIn follow action with 5-10% chance
+            if (randomValue >= 5 && randomValue <= 10) {
+                await performLinkedInFollowActions(page, logger); // Click follow button
+            }
+
+            // Perform LinkedIn connect, subscribe, join and accept action with 1-5% chance
+            if (randomValue >= 1 && randomValue <= 8) {
+                await performLinkedInNetworkActions(page, logger); // Click follow button
+                page.goBack();
+            }
+
         }
 
         // Wait between 2-5 seconds after each loop iteration
-        await wait(2000, 5000);
+        await dynamicWait(2000, 5000);
     }
 
     logger.log('Finished fun:: performHumanActions');
@@ -167,16 +175,11 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
     let likeButtons: any[] = [];
     let previousHeight = 0;
 
-    const wait = async (min: number, max: number) => {
-        const time = min + Math.random() * (max - min);
-        await new Promise(resolve => setTimeout(resolve, time));
-    };
-
     // Step 1: Continuously scroll, simulate reading, and gather "Like" buttons
     while (likeButtons.length < count) {
         // Collect unliked "Like" buttons
         const newButtons = await page.$$(
-            '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
+            platformConfig.postLikeBtn
         );
         likeButtons = likeButtons.concat(newButtons);
 
@@ -189,7 +192,7 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
         // Step 2: Scroll down to load more posts and simulate reading
         previousHeight = await page.evaluate(() => document.body.scrollHeight);
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await wait(4000, 7000); // Simulate reading by waiting 4-7 seconds after scrolling
+        await dynamicWait(4000, 7000); // Simulate reading by waiting 4-7 seconds after scrolling
 
         // Step 3: Check if the page has more content to load
         const newHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -212,13 +215,13 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
             b.scrollIntoView({ behavior: 'smooth', block: 'center' })
         );
 
-        await wait(5000, 12000); // Simulate reading for 5-12 seconds
+        await dynamicWait(5000, 12000); // Simulate reading for 5-12 seconds
 
         // Click the "Like" button
         await button.click();
 
         // Introduce a random delay after clicking "Like"
-        await wait(3000, 8000); // Wait 3-8 seconds before moving to the next post
+        await dynamicWait(3000, 8000); // Wait 3-8 seconds before moving to the next post
     }
     logger.log('Finished fun:: likeRandomPosts');
 }
@@ -226,15 +229,15 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
 export async function performLinkedInSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
     logger.log('Starting fun:: performLinkedInSearchAndLike');
     // Wait for search input to be available
-    await waitForElement(page, '[data-view-name="search-global-typeahead-input"]');
+    await waitForElement(page, platformConfig.headerSearchInput);
 
     // Check if search input is available
-    const searchInput = await page.$('[data-view-name="search-global-typeahead-input"]');
-    if (!searchInput) {
+    const searchInput = await page.$(platformConfig.headerSearchInput);
+    if (!searchInput && platformConfig.name === 'LinkedIn') {
         const searchButton = await waitForElement(page, '#global-nav-search');
         if (searchButton) {
             await searchButton.click();
-            await waitForElement(page, '[data-view-name="search-global-typeahead-input"]', 5, 1000);
+            await waitForElement(page, platformConfig.headerSearchInput, 5, 1000);
         } else {
             logger.error("performLinkedInSearchAndLike::> Couldn't find search input or button");
             return;
@@ -242,8 +245,8 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     }
 
     // Focus and clear the search input
-    await page.focus('[data-view-name="search-global-typeahead-input"]');
-    await page.$eval('[data-view-name="search-global-typeahead-input"]', (input) => {
+    await page.focus(platformConfig.headerSearchInput);
+    await page.$eval(platformConfig.headerSearchInput, (input) => {
         (input as HTMLInputElement).value = '';
     });
 
@@ -251,17 +254,18 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
     // Type search query with human-like speed
-    await typeWithHumanLikeSpeed(page, '[data-view-name="search-global-typeahead-input"]', searchQuery, logger);
+    await typeWithHumanLikeSpeed(page, platformConfig.headerSearchInput, searchQuery, logger);
 
     // Press Enter and wait for navigation
     await page.keyboard.press('Enter');
     await page.waitForNavigation();
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
 
+    await page.waitForSelector(platformConfig.headerBtnFilters);
     // Get all buttons inside the filters bar
-    const filtersBarButtons = await page.$$('div#search-reusables__filters-bar button');
+    const filtersBarButtons = await page.$$(platformConfig.headerBtnFilters);
 
-    if (filtersBarButtons.length > 0) {
+    if (filtersBarButtons.length > 0 && platformConfig.name === 'LinkedIn') {
         for (const button of filtersBarButtons) {
             // Get the button's text content
             const buttonText = await page.evaluate(element => element.textContent, button);
@@ -277,49 +281,57 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
                 break;  // Exit the loop after clicking the desired button
             }
         }
+    } else if (platformConfig.name === 'Facebook') {
+        // Hover and click on the "My Network" link
+        await page.hover(`${filtersBarButtons} a[href*="/search/pages"]`);
+        await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
+        await page.click(`${filtersBarButtons} a[href*="/search/pages"]`);
     }
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
-    const noResultsElement = await page.$('.search-reusable-search-no-results.artdeco-card.mb2');
-    if (noResultsElement) {
-        logger.log("checkCompanyPageResultsAndRetry::> No results found");
-        await page.goBack();
-    }
+    if (platformConfig.name === 'LinkedIn') {
 
-    // Loop through search results and assign random IDs
-    const companiesLinks = await page.$$('ul.reusable-search__entity-result-list li.reusable-search__result-container');
-    if (companiesLinks.length === 0) {
-        logger.error('No search results found.');
-        return;
-    }
-
-    for (let i = 0; i < companiesLinks.length; i++) {
-        const result = companiesLinks[i];
-
-        // Assign a random ID to each result container
-        const randomID = generateRandomID();
-        await page.evaluate((el, id) => el.setAttribute('data-random-id', id), result, randomID);
-
-        // Extract the company link
-        const linkElement = await result.$('a.app-aware-link');
-        const selectedLink = linkElement ? await page.evaluate(el => el.href, linkElement) : null;
-
-        if (selectedLink === companyURL) {
-            logger.log(`link matched: ${selectedLink}`);
-
-            await page.goto(selectedLink);
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-
-            await goToAndLikeCompanyPosts(page, logger);
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-            break;
-        } else {
-            await page.evaluate((el) => {
-                el.style.border = '1px solid red';
-            }, result);
+        const noResultsElement = await page.$('.search-reusable-search-no-results.artdeco-card.mb2');
+        if (noResultsElement) {
+            logger.log("checkCompanyPageResultsAndRetry::> No results found");
+            await page.goBack();
         }
-    }
 
+        // Loop through search results and assign random IDs
+        const companiesLinks = await page.$$('ul.reusable-search__entity-result-list li.reusable-search__result-container');
+        if (companiesLinks.length === 0) {
+            logger.error('No search results found.');
+            return;
+        }
+
+        for (let i = 0; i < companiesLinks.length; i++) {
+            const result = companiesLinks[i];
+
+            // Assign a random ID to each result container
+            const randomID = generateRandomID();
+            await page.evaluate((el, id) => el.setAttribute('data-random-id', id), result, randomID);
+
+            // Extract the company link
+            const linkElement = await result.$('a.app-aware-link');
+            const selectedLink = linkElement ? await page.evaluate(el => el.href, linkElement) : null;
+
+            if (selectedLink === companyURL) {
+                logger.log(`link matched: ${selectedLink}`);
+
+                await page.goto(selectedLink);
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+                await goToAndLikeCompanyPosts(page, logger);
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+                break;
+            } else {
+                await page.evaluate((el) => {
+                    el.style.border = '1px solid red';
+                }, result);
+            }
+        }
+
+    }
     logger.log('Finished fun:: performLinkedInSearchAndLike');
 }
 
@@ -333,7 +345,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
         while (likeButtons.length < count) {
             // Select all unliked "like" buttons from the feed-shared-social-action-bar elements
             likeButtons = await page.$$(
-                '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]'
+                platformConfig.postLikeBtn
             );
 
             const availableCount = likeButtons.length;
@@ -375,10 +387,14 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
             await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
 
             // Wait for the reactions menu to become visible (adjust selector as necessary)
-            await page.waitForSelector('.reactions-menu--active', { visible: true });
+            await page.waitForSelector(platformConfig.postReactionDiv, { visible: true });
 
             // Step 8: Select a reaction to click
-            const reactions = await page.$$('.reactions-menu--active button');
+            let reactions: any = await page.$$(`${platformConfig.postReactionDiv} button`);
+
+            if (platformConfig.name === 'Facebook') {
+                reactions = await page.$$(`${platformConfig.postReactionDiv} div[aria-label]`);
+            }
 
             if (reactions.length > 0) {
                 // Choose a random reaction
@@ -426,11 +442,6 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
 export async function performLinkedInFollowActions(page: Page, logger: Logger) {
     logger.log('Starting fun:: performLinkedInFollowActions');
 
-    const wait = async (min: number, max: number) => {
-        const time = min + Math.random() * (max - min);
-        await new Promise(resolve => setTimeout(resolve, time));
-    };
-
     const followUsers = async () => {
         const followButtons = await page.$$('button.follow.feed-follows-module-recommendation__follow-btn, button.follow.update-components-actor__follow-button');
 
@@ -444,7 +455,7 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
                 await page.evaluate((btn) => {
                     btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, buttonToClick);
-                await wait(1000, 3000); // Wait 1-3 seconds after scrolling into view
+                await dynamicWait(1000, 3000); // Wait 1-3 seconds after scrolling into view
 
                 // Click the follow button
                 await buttonToClick.click();
@@ -456,7 +467,7 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
                 }, buttonToClick);
 
                 // Wait after clicking the follow button
-                await wait(30000, 60000); // Increase the wait time (30-60 seconds)
+                await dynamicWait(30000, 60000); // Increase the wait time (30-60 seconds)
             }
         }
     };
@@ -470,11 +481,6 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
 // Function to perform LinkedIn Network Actions
 export async function performLinkedInNetworkActions(page: Page, logger: Logger) {
     logger.log('Starting fun:: performLinkedInNetworkActions');
-
-    const wait = async (min: number, max: number) => {
-        const time = min + Math.random() * (max - min);
-        await new Promise(resolve => setTimeout(resolve, time));
-    };
 
     // Hover and click on the "My Network" link
     await page.hover('a[href*="linkedin.com/mynetwork"]');
@@ -514,7 +520,7 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
             }
 
             // Wait before moving to the next invitation
-            await wait(2000, 4000); // Wait 2-4 seconds between actions
+            await dynamicWait(2000, 4000); // Wait 2-4 seconds between actions
         }
     };
 
@@ -531,7 +537,7 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
             await connectButtons[randomIndex].hover();
             await connectButtons[randomIndex].click();
             logger.log('Clicked Connect button');
-            await wait(3000, 5000); // Wait 3-5 seconds after clicking
+            await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
         }
     };
 
@@ -547,7 +553,7 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
             await subscribeButtons[randomIndex].hover();
             await subscribeButtons[randomIndex].click();
             logger.log('Clicked Subscribe button');
-            await wait(3000, 5000); // Wait 3-5 seconds after clicking
+            await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
         }
     };
 

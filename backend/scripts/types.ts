@@ -10,3 +10,17 @@ export interface BrowserProfile {
     theme: string;
     // Add other profile preferences as needed
 }
+
+export interface SocialMediaConfig {
+    name: string;
+    loginUrl: string;
+    usernameSelector: string;
+    passwordSelector: string;
+    signinButtonSelector: string;
+    homeUrl: string;
+    captcha?: string;
+    postLikeBtn: string;
+    postReactionDiv: string;
+    headerSearchInput: string;
+    headerBtnFilters: string;
+}

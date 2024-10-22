@@ -1,4 +1,4 @@
-// bot.ts
+// backend/bot.ts
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page } from 'puppeteer';
@@ -9,10 +9,10 @@ import Logger from './scripts/logger';
 import { BrowserProfile, Company } from './scripts/types';
 import { confirmIPConfiguration } from './src/utils';
 import { stopBot } from './index';
+import { socialMediaConfigs } from './config/SocialMedia'; // Import the social media platformConfig
 
 puppeteer.use(StealthPlugin());
 
-// Move the file reading logic into a function
 function getCompaniesData() {
     const companiesData = JSON.parse(fs.readFileSync('./data/companies-data.json', 'utf-8'));
     return companiesData.companies;
@@ -50,6 +50,15 @@ class BrowserProfileManager {
 }
 
 async function runBot() {
+    let platform = process.env.PLATFORM;
+    if (!platform) platform = 'linkedin';
+    const platformConfig = socialMediaConfigs[platform];
+
+    if (!platformConfig) {
+        console.error(`Configuration for ${platform} not found`);
+        process.exit(1);
+    }
+
     const username = process.env.BOT_USERNAME;
     const password = process.env.BOT_PASSWORD;
     const ip_address = process.env.IP_ADDRESS;
@@ -61,8 +70,8 @@ async function runBot() {
         console.error('Bot credentials not provided');
         process.exit(1);
     }
-    let botUserName = username.split('@')[0];
 
+    let botUserName = username.split('@')[0];
     const logger = new Logger(botUserName);
     logger.log(`Starting bot: ${botUserName}`);
 
@@ -84,10 +93,10 @@ async function runBot() {
             args: ['--no-sandbox', '--disable-setuid-sandbox',
                 ...(ip_address && ip_port ? [
                     `--proxy-server=http://${ip_address}:${ip_port}`,
-                    '--disable-web-security', // Temporarily disable web security
-                    '--ignore-certificate-errors', // Ignore SSL certificate errors
-                    '--enable-logging', // Enable logging
-                    '--v=1' // Verbose logging
+                    '--disable-web-security',
+                    '--ignore-certificate-errors',
+                    '--enable-logging',
+                    '--v=1'
                 ] : [])
             ]
         });
@@ -98,13 +107,11 @@ async function runBot() {
         page = pages[0];
         if (ip_address && ip_port && ip_username && ip_password) {
             await page.authenticate({ username: ip_username, password: ip_password });
-
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
-
             const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
 
             if (!isIPConfigured) {
-                logger.error('IP configuration failed, after 3 attempts. Stoping bot from further process.');
+                logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
                 stopBot(username);
             }
         } else {
@@ -113,47 +120,40 @@ async function runBot() {
 
         await page.setViewport({ width: 1920, height: 1080 });
 
-        // Login process
-        await page.goto('https://www.linkedin.com/login');
-
+        // Use the configuration for navigation
+        await page.goto(platformConfig.loginUrl);
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-        // Check if the login form is present
-        const isLoginPage = await page.$('#username');
+        const isLoginPage = await page.$(platformConfig.usernameSelector);
 
         if (isLoginPage) {
             console.log("User is not logged in. Proceeding with login...");
 
-            // Type credentials with human-like speed
-            await typeWithHumanLikeSpeed(page, '#username', username, logger);
+            await typeWithHumanLikeSpeed(page, platformConfig.usernameSelector, username, logger);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
-            await typeWithHumanLikeSpeed(page, '#password', password, logger);
-
+            await typeWithHumanLikeSpeed(page, platformConfig.passwordSelector, password, logger);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-            await page.click('.login__form_action_container button');
+            await page.click(platformConfig.signinButtonSelector);
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
             console.log("Login successful. Proceeding to home page.");
-        } else if (page.url() === "https://www.linkedin.com/feed/") {
+        } else if (page.url() === platformConfig.homeUrl) {
             logger.log('On the homepage...');
         } else {
             logger.log('Unknown Error In Login Process...');
         }
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-        if (page.url().includes('checkpoint/challenge/')) {
+        if (platformConfig.captcha && page.url().includes(platformConfig.captcha)) {
             logger.log('Captcha/Code Verification required...');
 
-            // Wait for the user to manually resolve the captcha
             await new Promise<void>((resolve) => {
                 const checkPage = async () => {
                     const currentUrl = page?.url();
-                    if (currentUrl === "https://www.linkedin.com/feed/") {
+                    if (currentUrl === platformConfig.homeUrl) {
                         logger.log('Captcha verification successful. Continuing process...');
                         resolve(); // Resolve the promise to continue the process
                     } else {
-                        // Check again after a short delay
                         setTimeout(checkPage, 3000); // Check every 3 seconds
                     }
                 };
@@ -165,15 +165,15 @@ async function runBot() {
             await performHumanActions(page, logger);
             await likeRandomPosts(page, noOfRandomPostsToReact, logger);
 
-            const companies: Company[] = getCompaniesData(); // Dynamically read the companies data
-            companies.sort(() => Math.random() - 0.5); // Simple one-liner shuffle
+            const companies: Company[] = getCompaniesData();
+            companies.sort(() => Math.random() - 0.5); // Shuffle companies
 
             for (const company of companies) {
                 console.log(company, " :: ", companies);
                 if (company && company.link) {
                     await performLinkedInSearchAndLike(page, company.name, logger, company.link);
                 }
-                await page.goto('https://www.linkedin.com/feed/');
+                await page.goto(platformConfig.homeUrl); // Use the home URL from platformConfig
                 await performHumanActions(page, logger);
             }
         }

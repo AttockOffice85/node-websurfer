@@ -22,6 +22,7 @@ function runBot(user: any) {
     const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
         env: {
             ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password,
+            PLATFORM: 'linkedin',
             IP_ADDRESS: user.ip_address,
             IP_PORT: user.ip_port,
             IP_USERNAME: user.ip_username,

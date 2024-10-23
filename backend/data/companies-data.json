@@ -2,11 +2,13 @@
     "companies": [
         {
             "name": "the redstone",
-            "link": "https://www.linkedin.com/company/theredstoneai/"
+            "link": "https://www.linkedin.com/company/theredstoneai/",
+            "fbLink": "https://www.facebook.com/RealDubaians"
         },
         {
             "name": "SyNet Digital",
-            "link": "https://www.linkedin.com/company/synet-digital/"
+            "link": "https://www.linkedin.com/company/synet-digital/",
+            "fbLink": "https://www.facebook.com/SyNetDigitalMarketing"
         }
     ]
 }

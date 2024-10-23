@@ -3,6 +3,7 @@ export interface Company {
     name: string;
     city?: string;
     link?: string;
+    fbLink?: string;
 }
 
 export interface BrowserProfile {

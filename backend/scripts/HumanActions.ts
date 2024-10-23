@@ -258,12 +258,16 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
 
     // Press Enter and wait for navigation
     await page.keyboard.press('Enter');
-    await page.waitForNavigation();
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
+    // await page.waitForNavigation();
 
+    logger.log(`performLinkedInSearchAndLike::> on line 263`);
     await page.waitForSelector(platformConfig.headerBtnFilters);
+    logger.log(`performLinkedInSearchAndLike::> on line 265`);
     // Get all buttons inside the filters bar
     const filtersBarButtons = await page.$$(platformConfig.headerBtnFilters);
+    logger.log(`line 268::::on ${filtersBarButtons}`);
+
+    await dynamicWait(300, 500);
 
     if (filtersBarButtons.length > 0 && platformConfig.name === 'LinkedIn') {
         for (const button of filtersBarButtons) {
@@ -283,9 +287,72 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
         }
     } else if (platformConfig.name === 'Facebook') {
         // Hover and click on the "My Network" link
-        await page.hover(`${filtersBarButtons} a[href*="/search/pages"]`);
+        logger.log(`performLinkedInSearchAndLike::> on line 290`);
+        // Select the <a> tag that contains '/search/pages' in the href
+        const pageBtn: any = await page.$(`${platformConfig.headerBtnFilters} a[href*="/search/pages"]`);
+
+        if (pageBtn) {
+            logger.log(`${pageBtn}`);
+            // Apply a red border to the element, if it exists
+            await page.evaluate((btn) => {
+                if (btn) btn.style.border = '10px solid red';
+            }, pageBtn);
+
+            await dynamicWait(300, 500); // Wait 0.3-0.5 seconds after clicking
+            await pageBtn.hover();
+            await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
+            await pageBtn.click();
+
+        } else {
+            logger.log('page selector not found 304')
+        }
         await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
-        await page.click(`${filtersBarButtons} a[href*="/search/pages"]`);
+        // Step 1: Select all divs within the feed
+        let allFbPageFeeds = await page.$$('div[aria-label="Search results"] div[role="feed"] > div');
+
+        // Step 2: Loop through all feed divs
+        for (let i = 0; i < 10; i++) {
+            let currentDiv = allFbPageFeeds[i];
+
+            // Highlight the current div for debugging
+            await page.evaluate((currentDiv) => {
+                if (currentDiv) currentDiv.style.border = '10px solid red';
+            }, currentDiv);
+
+            // Step 3: Look for the a tag inside div.html-div div[role="article"]
+            const anchorTag = await currentDiv.$('div.html-div div[role="article"] a');
+
+            if (anchorTag) {
+                // Get the href attribute of the anchor tag
+                const anchorHref = await page.evaluate((aTag: any) => aTag.getAttribute('href'), anchorTag);
+                logger.log(`line 328 >>>> ${anchorTag} :::: ${anchorHref} :::: ${companyURL}`)
+                // Step 4: Check if the href matches the companyURL
+                if (anchorHref && (anchorHref.split('?')[0] === companyURL || anchorHref === companyURL)) {
+                    // If found, click the anchor tag
+                    await anchorTag.click();
+                    console.log(`Clicked on the link with href: ${companyURL}`);
+
+                    await dynamicWait(3000, 5000);
+                    await likeRandomPostsWithReactions(page, 5, logger);
+
+                    await dynamicWait(3000, 5000);
+
+                    break; // Stop the loop once the link is found and clicked
+                } else {
+                    // Otherwise, remove the current div
+                    await page.evaluate((div) => div.remove(), currentDiv);
+                    console.log(`Removed a div without the matching href.`);
+                }
+                await dynamicWait(3000, 5000);
+            } else {
+                // Remove the div if no anchor tag is found
+                await page.evaluate((div) => div.remove(), currentDiv);
+                console.log(`Removed a div without any link.`);
+            }
+
+            await dynamicWait(300, 500);
+
+        }
     }
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 

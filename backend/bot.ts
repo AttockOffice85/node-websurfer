@@ -170,8 +170,9 @@ async function runBot() {
 
             for (const company of companies) {
                 console.log(company, " :: ", companies);
-                if (company && company.link) {
-                    await performLinkedInSearchAndLike(page, company.name, logger, company.link);
+                let companyURL = platformConfig.name === 'LinkedIn' ? company.link : company.fbLink;
+                if (company && companyURL) {
+                    await performLinkedInSearchAndLike(page, company.name, logger, companyURL);
                 }
                 await page.goto(platformConfig.homeUrl); // Use the home URL from platformConfig
                 await performHumanActions(page, logger);

@@ -34,6 +34,10 @@ export const botStatusExplanations = [
         desc: 'Bot working on the posts.',
     },
     {
+        status: 'Paused',
+        desc: 'Bot is paused. Resolve issue manually.',
+    },
+    {
         status: 'Captcha/Code | IP Config',
         desc: 'Manual verification/attention required.',
     },

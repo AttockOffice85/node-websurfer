@@ -4,6 +4,7 @@ export interface Company {
     city?: string;
     link?: string;
     fbLink?: string;
+    instaLink?: string;
 }
 
 export interface BrowserProfile {
@@ -21,7 +22,8 @@ export interface SocialMediaConfig {
     homeUrl: string;
     captcha?: string;
     postLikeBtn: string;
-    postReactionDiv: string;
+    postReactionDiv?: string;
+    headerSearchBtn?: string;
     headerSearchInput: string;
-    headerBtnFilters: string;
+    headerBtnFilters?: string;
 }

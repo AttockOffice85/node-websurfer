@@ -12,6 +12,7 @@ export const socialMediaConfigs: Record<string, SocialMediaConfig> = {
         captcha: 'checkpoint/challenge/',
         postLikeBtn: '.feed-shared-social-action-bar--full-width .react-button__trigger[aria-label="React Like"]',
         postReactionDiv: '.reactions-menu--active',
+        headerSearchBtn: '#global-nav-search',
         headerSearchInput: '[data-view-name="search-global-typeahead-input"]',
         headerBtnFilters: 'div#search-reusables__filters-bar button'
     },
@@ -26,6 +27,18 @@ export const socialMediaConfigs: Record<string, SocialMediaConfig> = {
         postReactionDiv: 'div[aria-label="Reactions"]',
         headerSearchInput: 'input[aria-label="Search Facebook"]',
         headerBtnFilters: 'div[aria-label="Result filters"] div[role="list"] div[role="listitem"]'
+    },
+    instagram: {
+        name: 'Instagram',
+        loginUrl: 'https://www.instagram.com/',
+        usernameSelector: 'input[name="username"]',
+        passwordSelector: 'input[name="password"]',
+        signinButtonSelector: 'form#loginForm button[type="submit"]',
+        captcha: '/accounts/onetap/',
+        homeUrl: 'https://www.instagram.com/reels/',
+        postLikeBtn: '[aria-label="Like"]',
+        headerSearchBtn: 'svg[aria-label="Search"]',
+        headerSearchInput: 'input[aria-label="Search input"]',
     },
     // Add more social media platforms here
 };

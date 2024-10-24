@@ -4,13 +4,12 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
-import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
+import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
 import { BrowserProfile, Company } from './scripts/types';
 import { confirmIPConfiguration } from './src/utils';
 import { stopBot } from './index';
 import { socialMediaConfigs } from './config/SocialMedia'; // Import the social media platformConfig
-import { BotStateManager, CaptchaMonitor } from './src/CaptchaMonitoring';
 
 puppeteer.use(StealthPlugin());
 
@@ -53,13 +52,7 @@ class BrowserProfileManager {
 async function runBot() {
     let platform = process.env.PLATFORM;
     if (!platform) platform = 'linkedin';
-    let platformConfig: any = socialMediaConfigs[platform];
-    platformConfig = {
-        ...socialMediaConfigs[platform],
-        captcha: Array.isArray(platformConfig.captcha)
-            ? platformConfig.captcha
-            : [platformConfig.captcha]
-    };
+    let platformConfig = socialMediaConfigs[platform];
 
     if (!platformConfig) {
         console.error(`Configuration for ${platform} not found`);
@@ -83,7 +76,7 @@ async function runBot() {
     logger.log(`Starting bot: ${botUserName}`);
 
     let browser: Browser | null = null;
-    let page: Page;
+    let page: Page | null = null;
 
     const profileManager = new BrowserProfileManager();
     const userProfile: BrowserProfile = {
@@ -151,87 +144,57 @@ async function runBot() {
         }
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
 
-        const stateManager = new BotStateManager();
-        const captchaMonitor = new CaptchaMonitor({
-            minInterval: 50000,
-            maxInterval: 160000,
-            page,
-            logger,
-            platformConfig,
-            stateManager
-        });
 
-        // Start monitoring
-        captchaMonitor.start();
+        if (platformConfig.captcha && page.url().includes(platformConfig.captcha)) {
+            logger.log('Captcha/Code Verification required...');
 
-        // Add error handling
-        stateManager.on('paused', (reason) => {
-            logger.log(`Bot paused due to: ${reason}`);
-        });
-
-        stateManager.on('resumed', () => {
-            logger.log('Bot resumed operations');
-        });
-
-        // Helper function to handle actions with captcha checking
-        async function performActionWithCaptchaCheck(action: () => Promise<void>) {
-            while (true) {
-                try {
-                    if (stateManager.isPausedState()) {
-                        logger.log('Bot is paused, waiting for resume...');
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        continue;
+            await new Promise<void>((resolve) => {
+                const checkPage = async () => {
+                    const currentUrl = page?.url();
+                    if (currentUrl === platformConfig.homeUrl) {
+                        logger.log('Captcha verification successful. Continuing process...');
+                        resolve(); // Resolve the promise to continue the process
+                    } else {
+                        setTimeout(checkPage, 3000); // Check every 3 seconds
                     }
-                    await action();
-                    break;
-                } catch (error) {
-                    logger.error(`Action failed: ${error}`);
-                    if (stateManager.isCaptchaDetected()) {
-                        logger.log('Waiting for captcha resolution...');
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        continue;
-                    }
-                    throw error;
-                }
-            }
+                };
+                checkPage();
+            });
         }
 
         while (true) {
             try {
+                if (platformConfig.name === 'Instagram') {
+                    await page.goto(platformConfig.homeUrl);
+                }
+
                 // Perform human actions with captcha check
-                await performActionWithCaptchaCheck(async () => {
-                    await performHumanActions(page, logger);
-                });
+
+                await performHumanActions(page, logger);
 
                 // Like random posts with captcha check
-                await performActionWithCaptchaCheck(async () => {
-                    await likeRandomPosts(page, noOfRandomPostsToReact, logger);
-                });
+
+                await likeRandomPosts(page, noOfRandomPostsToReact, logger);
 
                 const companies: Company[] = getCompaniesData();
                 companies.sort(() => Math.random() - 0.5);
 
                 for (const company of companies) {
-                    // Skip company if bot is paused
-                    if (stateManager.isPausedState()) {
-                        logger.log('Bot is paused, waiting before processing next company...');
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        continue;
+                    let companyURL = null;
+                    if (company.instaLink) {
+                        companyURL = company.instaLink;
+                    } else if (company.link) {
+                        companyURL = company.link;
+                    } else if (company.fbLink) {
+                        companyURL = company.fbLink;
                     }
 
-                    let companyURL = platformConfig.name === 'LinkedIn' ? company.link : company.fbLink;
                     if (company && companyURL) {
-                        await performActionWithCaptchaCheck(async () => {
-                            await performLinkedInSearchAndLike(page, company.name, logger, companyURL);
-                        });
+                        await performProfileSearchAndLike(page, company.name, logger, companyURL);
 
-                        await performActionWithCaptchaCheck(async () => {
-                            await page.goto(platformConfig.homeUrl);
-                        });
+                        await page.goto(platformConfig.homeUrl);
 
-                        await performActionWithCaptchaCheck(async () => {
-                            await performHumanActions(page, logger);
-                        });
+                        await performHumanActions(page, logger);
                     }
 
                     // Add random delay between companies

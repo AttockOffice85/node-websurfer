@@ -1,3 +1,4 @@
+// backend\scripts\HumanActions.ts
 import { ElementHandle, Page } from 'puppeteer';
 import Logger from './logger';
 import { generateRandomID, dynamicWait } from '../src/utils';
@@ -108,7 +109,11 @@ export async function performHumanActions(page: Page, logger: Logger) {
         }
 
         if (platformConfig.name === 'Facebook') {
-            await likeRandomPostsWithReactions(page, 5, logger);
+            if (platformConfig.postReactionDiv) {
+                await likeRandomPostsWithReactions(page, 5, logger);
+            } else {
+                await likeRandomPosts(page, 5, logger);
+            }
         }
 
         if (platformConfig.name === 'LinkedIn') {
@@ -226,20 +231,20 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
     logger.log('Finished fun:: likeRandomPosts');
 }
 
-export async function performLinkedInSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
-    logger.log('Starting fun:: performLinkedInSearchAndLike');
+export async function performProfileSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
+    logger.log('Starting fun:: performProfileSearchAndLike');
     // Wait for search input to be available
     await waitForElement(page, platformConfig.headerSearchInput);
 
     // Check if search input is available
     const searchInput = await page.$(platformConfig.headerSearchInput);
-    if (!searchInput && platformConfig.name === 'LinkedIn') {
-        const searchButton = await waitForElement(page, '#global-nav-search');
+    if (!searchInput && platformConfig.headerSearchBtn) {
+        const searchButton = await waitForElement(page, platformConfig.headerSearchBtn);
         if (searchButton) {
             await searchButton.click();
             await waitForElement(page, platformConfig.headerSearchInput, 5, 1000);
         } else {
-            logger.error("performLinkedInSearchAndLike::> Couldn't find search input or button");
+            logger.error("performProfileSearchAndLike::> Couldn't find search input or button");
             return;
         }
     }
@@ -260,34 +265,39 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
     await page.keyboard.press('Enter');
     // await page.waitForNavigation();
 
-    logger.log(`performLinkedInSearchAndLike::> on line 263`);
-    await page.waitForSelector(platformConfig.headerBtnFilters);
-    logger.log(`performLinkedInSearchAndLike::> on line 265`);
-    // Get all buttons inside the filters bar
-    const filtersBarButtons = await page.$$(platformConfig.headerBtnFilters);
-    logger.log(`line 268::::on ${filtersBarButtons}`);
+    if (platformConfig.headerBtnFilters) {
+        logger.log(`performProfileSearchAndLike::> on line 264`);
+        await page.waitForSelector(platformConfig.headerBtnFilters);
+    }
 
     await dynamicWait(300, 500);
 
-    if (filtersBarButtons.length > 0 && platformConfig.name === 'LinkedIn') {
-        for (const button of filtersBarButtons) {
-            // Get the button's text content
-            const buttonText = await page.evaluate(element => element.textContent, button);
+    if (platformConfig.name === 'LinkedIn' && platformConfig.headerBtnFilters) {
+        // Get all buttons inside the filters bar
+        const filtersBarButtons = await page.$$(platformConfig.headerBtnFilters);
+        if (filtersBarButtons.length > 0) {
+            logger.log(`line 274::::on ${filtersBarButtons}`);
+            for (const button of filtersBarButtons) {
+                // Get the button's text content
+                const buttonText = await page.evaluate(element => element.textContent, button);
 
-            // Introduce a delay for a human-like interaction
-            await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
+                // Introduce a delay for a human-like interaction
+                await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
-            // Check if the button contains "Companies"
-            if (buttonText && buttonText.includes("Companies")) {
-                // Click the button and wait for navigation
-                await button.click();
-                await page.waitForNavigation();
-                break;  // Exit the loop after clicking the desired button
+                // Check if the button contains "Companies"
+                if (buttonText && buttonText.includes("Companies")) {
+                    // Click the button and wait for navigation
+                    await button.click();
+                    await page.waitForNavigation();
+                    await dynamicWait(3000, 5000);
+                    await linkedinCompanyProfileAct(page, companyURL, logger);
+                    break;  // Exit the loop after clicking the desired button
+                }
             }
         }
-    } else if (platformConfig.name === 'Facebook') {
+    } else if (platformConfig.name === 'Facebook' && platformConfig.headerBtnFilters) {
         // Hover and click on the "My Network" link
-        logger.log(`performLinkedInSearchAndLike::> on line 290`);
+        logger.log(`performProfileSearchAndLike::> on line 292`);
         // Select the <a> tag that contains '/search/pages' in the href
         const pageBtn: any = await page.$(`${platformConfig.headerBtnFilters} a[href*="/search/pages"]`);
 
@@ -307,99 +317,11 @@ export async function performLinkedInSearchAndLike(page: Page, searchQuery: stri
             logger.log('page selector not found 304')
         }
         await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
-        // Step 1: Select all divs within the feed
-        let allFbPageFeeds = await page.$$('div[aria-label="Search results"] div[role="feed"] > div');
-
-        // Step 2: Loop through all feed divs
-        for (let i = 0; i < 10; i++) {
-            let currentDiv = allFbPageFeeds[i];
-
-            // Highlight the current div for debugging
-            await page.evaluate((currentDiv) => {
-                if (currentDiv) currentDiv.style.border = '10px solid red';
-            }, currentDiv);
-
-            // Step 3: Look for the a tag inside div.html-div div[role="article"]
-            const anchorTag = await currentDiv.$('div.html-div div[role="article"] a');
-
-            if (anchorTag) {
-                // Get the href attribute of the anchor tag
-                const anchorHref = await page.evaluate((aTag: any) => aTag.getAttribute('href'), anchorTag);
-                logger.log(`line 328 >>>> ${anchorTag} :::: ${anchorHref} :::: ${companyURL}`)
-                // Step 4: Check if the href matches the companyURL
-                if (anchorHref && (anchorHref.split('?')[0] === companyURL || anchorHref === companyURL)) {
-                    // If found, click the anchor tag
-                    await anchorTag.click();
-                    console.log(`Clicked on the link with href: ${companyURL}`);
-
-                    await dynamicWait(3000, 5000);
-                    await likeRandomPostsWithReactions(page, 5, logger);
-
-                    await dynamicWait(3000, 5000);
-
-                    break; // Stop the loop once the link is found and clicked
-                } else {
-                    // Otherwise, remove the current div
-                    await page.evaluate((div) => div.remove(), currentDiv);
-                    console.log(`Removed a div without the matching href.`);
-                }
-                await dynamicWait(3000, 5000);
-            } else {
-                // Remove the div if no anchor tag is found
-                await page.evaluate((div) => div.remove(), currentDiv);
-                console.log(`Removed a div without any link.`);
-            }
-
-            await dynamicWait(300, 500);
-
-        }
+        await facebookCompanyProfileAct(page, companyURL, logger);
     }
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
-    if (platformConfig.name === 'LinkedIn') {
-
-        const noResultsElement = await page.$('.search-reusable-search-no-results.artdeco-card.mb2');
-        if (noResultsElement) {
-            logger.log("checkCompanyPageResultsAndRetry::> No results found");
-            await page.goBack();
-        }
-
-        // Loop through search results and assign random IDs
-        const companiesLinks = await page.$$('ul.reusable-search__entity-result-list li.reusable-search__result-container');
-        if (companiesLinks.length === 0) {
-            logger.error('No search results found.');
-            return;
-        }
-
-        for (let i = 0; i < companiesLinks.length; i++) {
-            const result = companiesLinks[i];
-
-            // Assign a random ID to each result container
-            const randomID = generateRandomID();
-            await page.evaluate((el, id) => el.setAttribute('data-random-id', id), result, randomID);
-
-            // Extract the company link
-            const linkElement = await result.$('a.app-aware-link');
-            const selectedLink = linkElement ? await page.evaluate(el => el.href, linkElement) : null;
-
-            if (selectedLink === companyURL) {
-                logger.log(`link matched: ${selectedLink}`);
-
-                await page.goto(selectedLink);
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-
-                await goToAndLikeCompanyPosts(page, logger);
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-                break;
-            } else {
-                await page.evaluate((el) => {
-                    el.style.border = '1px solid red';
-                }, result);
-            }
-        }
-
-    }
-    logger.log('Finished fun:: performLinkedInSearchAndLike');
+    logger.log('Finished fun:: performProfileSearchAndLike');
 }
 
 export async function likeRandomPostsWithReactions(page: Page, count: number, logger: Logger): Promise<void> {
@@ -454,8 +376,9 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
             await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
 
             // Wait for the reactions menu to become visible (adjust selector as necessary)
-            await page.waitForSelector(platformConfig.postReactionDiv, { visible: true });
-
+            if (platformConfig.postReactionDiv) {
+                await page.waitForSelector(platformConfig.postReactionDiv, { visible: true });
+            }
             // Step 8: Select a reaction to click
             let reactions: any = await page.$$(`${platformConfig.postReactionDiv} button`);
 
@@ -482,7 +405,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
     } catch (error) {
         logger.error(`likeRandomPostsWithReactions::> Error: ${String(error)}`);
     }
-    logger.log('Finished fun:: likeRandomPostsWithReactions');
+    logger.log(`Finished fun:: likeRandomPostsWithReactions ${platformConfig.postReactionDiv ? '' : ' - ! reactions'}`);
 }
 
 // Function to like posts on the company's "Posts" page
@@ -498,7 +421,11 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
         await performHumanActions(page, logger);
         await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 100));
         // Like posts
-        await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact, logger);
+        if (platformConfig.postReactionDiv) {
+            await likeRandomPostsWithReactions(page, noOfCompanyPostsToReact, logger);
+        } else {
+            await likeRandomPosts(page, 5, logger);
+        }
     } else {
         logger.error("goToAndLikeCompanyPosts::> Couldn't find the 'Posts' tab.");
     }
@@ -640,3 +567,101 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
 
     logger.log('Finished fun:: performLinkedInNetworkActions');
 }
+
+async function linkedinCompanyProfileAct(page: Page, companyURL: string, logger: Logger) {
+
+    const noResultsElement = await page.$('.search-reusable-search-no-results.artdeco-card.mb2');
+    if (noResultsElement) {
+        logger.log("checkCompanyPageResultsAndRetry::> No results found");
+        await page.goBack();
+    }
+
+    // Loop through search results and assign random IDs
+    const companiesLinks = await page.$$('ul.reusable-search__entity-result-list li.reusable-search__result-container');
+    if (companiesLinks.length === 0) {
+        logger.error('No search results found.');
+        return;
+    }
+
+    for (let i = 0; i < companiesLinks.length; i++) {
+        const result = companiesLinks[i];
+
+        // Assign a random ID to each result container
+        const randomID = generateRandomID();
+        await page.evaluate((el, id) => el.setAttribute('data-random-id', id), result, randomID);
+
+        // Extract the company link
+        const linkElement = await result.$('a.app-aware-link');
+        const selectedLink = linkElement ? await page.evaluate(el => el.href, linkElement) : null;
+
+        if (selectedLink === companyURL) {
+            logger.log(`link matched: ${selectedLink}`);
+
+            await page.goto(selectedLink);
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+            await goToAndLikeCompanyPosts(page, logger);
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+            break;
+        } else {
+            await page.evaluate((el) => {
+                el.style.border = '1px solid red';
+            }, result);
+        }
+    }
+
+}
+async function facebookCompanyProfileAct(page: Page, companyURL: string, logger: Logger) {
+    // Step 1: Select all divs within the feed
+    let allFbPageFeeds = await page.$$('div[aria-label="Search results"] div[role="feed"] > div');
+
+    // Step 2: Loop through all feed divs
+    for (let i = 0; i < 10; i++) {
+        let currentDiv = allFbPageFeeds[i];
+
+        // Highlight the current div for debugging
+        await page.evaluate((currentDiv) => {
+            if (currentDiv) currentDiv.style.border = '10px solid red';
+        }, currentDiv);
+
+        // Step 3: Look for the a tag inside div.html-div div[role="article"]
+        const anchorTag = await currentDiv.$('div.html-div div[role="article"] a');
+
+        if (anchorTag) {
+            // Get the href attribute of the anchor tag
+            const anchorHref = await page.evaluate((aTag: any) => aTag.getAttribute('href'), anchorTag);
+            logger.log(`line 625 >>>> ${anchorTag} :::: ${anchorHref} :::: ${companyURL}`)
+            // Step 4: Check if the href matches the companyURL
+            if (anchorHref && (anchorHref.split('?')[0] === companyURL || anchorHref === companyURL)) {
+                // If found, click the anchor tag
+                await anchorTag.click();
+                console.log(`Clicked on the link with href: ${companyURL}`);
+
+                await dynamicWait(3000, 5000);
+
+                if (platformConfig.postReactionDiv) {
+                    await likeRandomPostsWithReactions(page, 5, logger);
+                } else {
+                    await likeRandomPosts(page, 5, logger);
+                }
+
+                await dynamicWait(3000, 5000);
+
+                break; // Stop the loop once the link is found and clicked
+            } else {
+                // Otherwise, remove the current div
+                await page.evaluate((div) => div.remove(), currentDiv);
+                console.log(`Removed a div without the matching href.`);
+            }
+            await dynamicWait(3000, 5000);
+        } else {
+            // Remove the div if no anchor tag is found
+            await page.evaluate((div) => div.remove(), currentDiv);
+            console.log(`Removed a div without any link.`);
+        }
+
+        await dynamicWait(300, 500);
+
+    }
+}
+

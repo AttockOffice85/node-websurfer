@@ -8,7 +8,7 @@ import { EventEmitter } from 'events';
 import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
 import { BrowserProfile, Company } from './scripts/types';
-import { confirmIPConfiguration } from './src/utils';
+import { confirmIPConfiguration, dynamicWait } from './src/utils';
 import { stopBot } from './index';
 import { socialMediaConfigs } from './config/SocialMedia'; // Import the social media platformConfig
 
@@ -250,11 +250,9 @@ async function runBot() {
                 }
 
                 // Perform human actions with captcha check
-
                 await performHumanActions(page, logger);
 
                 // Like random posts with captcha check
-
                 await likeRandomPosts(page, noOfRandomPostsToReact, logger);
 
                 const companies: Company[] = getCompaniesData();
@@ -262,25 +260,23 @@ async function runBot() {
 
                 for (const company of companies) {
                     let companyURL = null;
-                    if (company.instaLink) {
+                    if (company.instaLink && platformConfig.name === 'Instagram') {
                         companyURL = company.instaLink;
-                    } else if (company.link) {
+                    } else if (company.link && platformConfig.name === 'LinkedIn') {
                         companyURL = company.link;
-                    } else if (company.fbLink) {
+                    } else if (company.fbLink && platformConfig.name === 'Facebook') {
                         companyURL = company.fbLink;
                     }
 
                     if (company && companyURL) {
                         await performProfileSearchAndLike(page, company.name, logger, companyURL);
-
-                        await page.goto(platformConfig.homeUrl);
-
-                        await performHumanActions(page, logger);
                     }
 
                     // Add random delay between companies
-                    const delay = Math.floor(Math.random() * 5000) + 5000;
-                    await new Promise(resolve => setTimeout(resolve, delay));
+                    await dynamicWait((Math.random() * 5000), 5000);
+                    await page.goto(platformConfig.homeUrl);
+
+                    await performHumanActions(page, logger);
                 }
             } catch (error) {
                 logger.error(`Error in main loop: ${error}`);

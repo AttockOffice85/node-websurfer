@@ -100,11 +100,16 @@ export async function performHumanActions(page: Page, logger: Logger) {
 
         // Scroll randomly with 80-99% chance
         if (randomValue >= 1 && randomValue <= 99) {
-            await scrollRandomly();  // Scroll down, possibly scroll back up
+            logger.log("performHumanActions::> random scrolling");
+            if (platformConfig.name === 'Instagram') {
+                await scrollInstagramWithKeyboard(page, logger);
+            } else {
+                await scrollRandomly();  // Scroll down, possibly scroll back up
+            }
         }
 
         // Select random text with 30-80% chance
-        if (randomValue >= 30 && randomValue <= 80) {
+        if (randomValue >= 30 && randomValue <= 80 && platformConfig.name !== 'Instagram') {
             await selectRandomText(); // Select random text
         }
 
@@ -233,8 +238,10 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
 
 export async function performProfileSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
     logger.log('Starting fun:: performProfileSearchAndLike');
-    // Wait for search input to be available
-    await waitForElement(page, platformConfig.headerSearchInput);
+    if (platformConfig.name !== 'Instagram') {
+        // Wait for search input to be available
+        await waitForElement(page, platformConfig.headerSearchInput);
+    }
 
     // Check if search input is available
     const searchInput = await page.$(platformConfig.headerSearchInput);
@@ -318,6 +325,34 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
         }
         await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
         await facebookCompanyProfileAct(page, companyURL, logger);
+    } else if (platformConfig.name === 'Instagram') {
+        logger.log(`line 348:: ${platformConfig.name}`)
+        // Wait for the specific link inside the div to appear
+        await page.waitForSelector('div[style="transform: translateX(0%);"] a[role="link"][href="/theredstoneai/"]', { timeout: 10000 });
+
+        // Select the company profile link
+        let companyProfiles = await page.$('div[style="transform: translateX(0%);"] a[role="link"][href="/theredstoneai/"]');
+
+        logger.log(`line 355:: ${companyProfiles}`);
+
+        await dynamicWait(3000, 5000);
+
+        if (companyProfiles) {
+            // Highlight the profile link with a red border
+            await page.evaluate((btn) => {
+                btn.style.border = '10px solid red';
+            }, companyProfiles);
+
+            await companyProfiles.click();
+            await dynamicWait(3000, 5000);
+
+            await instagramCompanyProfileAct(page, companyURL, logger);
+
+        } else {
+            logger.log(`Company profile link not found.`);
+        }
+
+        await dynamicWait(3000, 5000);
     }
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
@@ -665,3 +700,88 @@ async function facebookCompanyProfileAct(page: Page, companyURL: string, logger:
     }
 }
 
+async function instagramCompanyProfileAct(page: Page, companyURL: string, logger: Logger) {
+    // Counter to limit likes
+    let likesCount = 0;
+    await dynamicWait(3000, 5000);
+
+    // Wait for the main content area to load
+    await page.waitForSelector('main[role="main"] > div > div:nth-child(3)');
+    let companyPosts = await page.$$('main[role="main"] > div > div:nth-child(3) a[role="link"][href*="/theredstoneai"]');
+
+    // Randomize the order of company posts
+    companyPosts.sort(() => Math.random() - 0.5);
+
+    for (let post of companyPosts) {
+        try {
+            // Scroll post into view, hover over it, and click to open
+            await page.evaluate(element => element.scrollIntoView({ behavior: 'smooth', block: 'center' }), post);
+            await post.hover();
+            await dynamicWait(1000, 3000);
+            await post.click();
+
+            // Wait for the post to load and check if it's already liked
+            const isLiked = await page.$('section div[role="button"] svg[aria-label="Unlike"]');
+            const likeButtonParent = await page.$('section div[role="button"]:has(svg[aria-label="Like"])');
+
+            if (isLiked) {
+                logger.log("Post already liked, skipping.");
+            } else if (likeButtonParent && likesCount < noOfCompanyPostsToReact) {
+                // Highlight the Like button parent to visually indicate it's being clicked
+                await page.evaluate((btn) => {
+                    btn.style.border = '10px solid red';
+                }, likeButtonParent);
+
+                // Hover over and click the Like button parent
+                await dynamicWait(3000, 8000);
+                await likeButtonParent.hover();
+                await likeButtonParent.click();
+
+                // Wait for the "Unlike" button to confirm the post was liked
+                await page.waitForSelector('section div[role="button"] svg[aria-label="Unlike"]', { timeout: 5000 });
+
+                // Change the border color of the Unlike button parent to blue to indicate success
+                const unlikeButtonParent = await page.$('section div[role="button"]:has(svg[aria-label="Unlike"])');
+                await page.evaluate((btn) => { if (btn) btn.style.border = '8px solid blue'; }, unlikeButtonParent);
+
+                await dynamicWait(5000, 10000);
+                logger.log("Post liked.");
+                likesCount++;
+            } else {
+                logger.error("Like button not found, skipping post.");
+            }
+
+            await dynamicWait(1000, 2000);
+            await scrollInstagramWithKeyboard(page, logger);
+        } catch (error) {
+            logger.error(`Error interacting with Instagram post: ${error}`);
+        } finally {
+            // Attempt to close the post in case of error or completion
+            try {
+                await page.click('svg[aria-label="Close"]');
+            } catch (closeError) {
+                logger.error(`Close button not available: ${closeError}`);
+            }
+        }
+    }
+}
+
+async function scrollInstagramWithKeyboard(page: Page, logger: Logger) {
+    const scrollTimes = Math.floor(Math.random() * 3) + 1; // Scroll 1-3 times for shorter duration
+
+    for (let i = 0; i < scrollTimes; i++) {
+        // Simulate pressing the "ArrowDown" key for smoother scrolling
+        await page.keyboard.press('ArrowDown');
+        await dynamicWait(5000, 10000); // 5-10 seconds delay
+    }
+
+    // Occasionally simulate pressing the "ArrowUp" key to scroll back up
+    if (Math.random() < 0.3) {
+        await page.keyboard.press('ArrowUp');
+        await dynamicWait(3000, 5000); // 3-5 seconds delay
+    }
+
+    // Scroll down again using the "ArrowDown" key
+    await page.keyboard.press('ArrowDown');
+    await dynamicWait(3000, 7000); // 3-7 seconds delay
+};

@@ -36,7 +36,7 @@ export const socialMediaConfigs: Record<string, SocialMediaConfig> = {
         signinButtonSelector: 'form#loginForm button[type="submit"]',
         captcha: '/accounts/onetap/',
         homeUrl: 'https://www.instagram.com/reels/',
-        postLikeBtn: '[aria-label="Like"]',
+        postLikeBtn: 'div[role="button"]:has(svg[aria-label="Like"])',
         headerSearchBtn: 'svg[aria-label="Search"]',
         headerSearchInput: 'input[aria-label="Search input"]',
     },

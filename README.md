@@ -56,8 +56,11 @@ Before running this project, ensure you have the following installed on your mac
     NO_OF_BOTS=2
     BOTS_NO_OF_RETRY_CRASH=2
     SERVER_PORT=8080
+    PLATFORM=linkedin
     ```
 
+  ###  <span style="color: red;">**Note**: Ensure that you add only valid login credentials for the specified platform <small>(e.g., LinkedIn credentials for `PLATFORM=linkedin`)</small>. Using incorrect credentials may cause the bot to fail to log in or function smoothly.</span>
+  
 4.2. Install the required dependencies and run the backend server:
 
     ```bash
@@ -98,12 +101,13 @@ Before running this project, ensure you have the following installed on your mac
 The following environment variables are required for the bot to function:
 
 - **`HEADLESS_BROWSER`**: Puppeteer browser will not show up on screen if this variable is set to _true_.
+- **`PLATFORM`**: Social media platform. # set either _linkedin_, _instagram_ or _facebook_ and require app restart to fully function.
 - **`BOTS_NO_OF_RETRY_CRASH`**: The number of times a bot can retry in case of any issue.
 - **`NO_OF_COMPANY_POSTS`**: The number of company posts to interact with during each bot run.
 - **`NO_OF_RANDOM_POSTS`**: The number of posts on home to interact with during each bot run.
-- **`NO_OF_BOTS`**: Set no of bots equal to no of users defined in the users-data.json file.
+- **`NO_OF_BOTS`**: Set the number of bots equal to the number of users defined in the `users-data.json` file.
 - **`SERVER_PORT`**: Set port to 8080.
-- **`REACT_APP_API_URL`**: do not add ' / ' at the end of backend url
+- **`REACT_APP_API_URL`**: Do not add '/' at the end of the backend URL.
 
 ## Usage
 

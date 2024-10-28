@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, botStatusExplanations } from '../scripts/types';
-import { usePopupCompanyFormStore, usePopupUserFormStore } from '../store/usePopupStore';
-import UserModal from '../models/UserModal';
-import CompanyModal from '../models/CompanyModal';
+import { Bot, botStatusExplanations } from '../../scripts/types';
+import { usePopupCompanyFormStore, usePopupUserFormStore } from '../../store/usePopupStore';
+import UserModal from '../../components/Modals/AddBotModal';
+import AddNewCompanyModal from '../../components/Modals/AddNewCompanyModal';
+import { BotsClient } from '../../api/BotsClient';
 const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotsList: React.FC = () => {
@@ -10,17 +11,10 @@ const BotsList: React.FC = () => {
         alert('no backend endpoint defined');
     }
 
-    // State to store the clicked bot status
+    /* ------------------------------------------------------------------------------------------ */
+    /*                            State To Store The Clicked Bot Status                           */
+    /* ------------------------------------------------------------------------------------------ */
     const [clickedStatus, setClickedStatus] = useState<string | null>(null);
-
-    // Function to get the explanation of the clicked status
-    const handleStatusClick = (status: string) => {
-        setClickedStatus(status);
-        setTimeout(() => {
-            setClickedStatus(null);            
-        }, 5000);
-    };
-
     const [bots, setBots] = useState<Bot[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -30,74 +24,17 @@ const BotsList: React.FC = () => {
     const { openPopup } = usePopupUserFormStore();
     const { openPopup: companyPopup } = usePopupCompanyFormStore();
 
-    useEffect(() => {
-        const fetchBots = async () => {
-            try {
-                const response = await fetch(`${apiUrl}/all-bots`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch bots');
-                }
-                const data = await response.json();
-                setBots(data);
-
-                const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'].includes(bot.status));
-
-                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code', 'IP Config', 'paused'].includes(bot.status));
-                setBotsAttentionReq(botsAttentionReqArr?.length);
-                setNoOfInactiveBots(botsInActiveArr.length);
-                const botsActive = data.length - botsInActiveArr.length;
-                setNoOfActiveBots(botsActive < 0 ? 0 : botsActive);
-
-                setLoading(false);
-            } catch (err) {
-                setError('Failed to fetch bots');
-                setLoading(false);
-            }
-        };
-
-        fetchBots();
-        const interval = setInterval(fetchBots, 5000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    const startBot = async (botName: string) => {
-        try {
-            const response = await fetch(`${apiUrl}/start-bot`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username: botName }),
-            });
-            if (!response.ok) {
-                throw new Error('Failed to start bot');
-            }
-            const updatedBots = await fetch(`${apiUrl}/all-bots`).then(res => res.json());
-            setBots(updatedBots);
-        } catch (err) {
-            setError('Failed to start bot');
-        }
+    /* ------------------------------------------------------------------------------------------ */
+    /*                    Function To Get The Explanation Of The Clicked Status                   */
+    /* ------------------------------------------------------------------------------------------ */
+    const handleStatusClick = (status: string) => {
+        setClickedStatus(status);
+        setTimeout(() => { setClickedStatus(null); }, 5000);
     };
 
-    const stopBot = async (botName: string) => {
-        try {
-            const response = await fetch(`${apiUrl}/stop-bot`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username: botName }),
-            });
-            if (!response.ok) {
-                throw new Error('Failed to stop bot');
-            }
-            const updatedBots = await fetch(`${apiUrl}/all-bots`).then(res => res.json());
-            setBots(updatedBots);
-        } catch (err) {
-            setError('Failed to stop bot');
-        }
-    };
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                      Get Status Color                                      */
+    /* ------------------------------------------------------------------------------------------ */
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -125,11 +62,78 @@ const BotsList: React.FC = () => {
         }
     };
 
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                         Fetch Bots                                         */
+    /* ------------------------------------------------------------------------------------------ */
+
+    const fetchBotsData = async () => {
+        try {
+            setLoading(true);
+            const data = await BotsClient.fetchBots();
+            setBots(data.bots);
+            setNoOfInactiveBots(data.inactiveBots);
+            setNoOfActiveBots(data.activeBots);
+            setBotsAttentionReq(data.attentionRequired);
+            setError(null);
+        } catch (err) {
+            setError("Failed to fetch bots");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                      Handle Start Bot                                      */
+    /* ------------------------------------------------------------------------------------------ */
+
+    const handleStartBot = async (botName: string) => {
+        try {
+            const updatedBots = await BotsClient.startBot(botName);
+            setBots(updatedBots);
+        } catch (err) {
+            setError("Failed to start bot");
+        }
+    };
+
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                       Handle Stop Bot                                      */
+    /* ------------------------------------------------------------------------------------------ */
+
+    const handleStopBot = async (botName: string) => {
+        try {
+            const updatedBots = await BotsClient.stopBot(botName);
+            setBots(updatedBots);
+        } catch (err) {
+            setError("Failed to stop bot");
+        }
+    };
+
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                     Call The Functions                                     */
+    /* ------------------------------------------------------------------------------------------ */
+
+    useEffect(() => {
+        fetchBotsData();
+        const interval = setInterval(fetchBotsData, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                              X                                             */
+    /* ------------------------------------------------------------------------------------------ */
+
     if (loading) return <div className='text-center p-4'>Loading...</div>;
     if (error) return <div className='text-center p-4 text-red-500'>Error: {error}</div>;
 
     return (
         <div className='container mx-auto p-4'>
+
+            {/* Modals placement */}
+            <UserModal />
+
+            <AddNewCompanyModal />
+            {/* Modals placement */}
+
             <div className='flex justify-between items-center mb-3'>
                 <h1 className='text-2xl font-bold'>Bots List</h1>
                 <p className='bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md'>
@@ -188,11 +192,11 @@ const BotsList: React.FC = () => {
                             <td className='py-2 px-4 border-b'>{bot.ip_port}</td>
                             <td className='py-2 px-4 border-b'>
                                 {bot.isRunning ? (
-                                    <button onClick={() => stopBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>
+                                    <button onClick={() => handleStopBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>
                                         Stop
                                     </button>
                                 ) : (
-                                    <button onClick={() => startBot(bot.name)} className='bg-green-500 text-white px-2 py-1 rounded'>
+                                    <button onClick={() => handleStartBot(bot.name)} className='bg-green-500 text-white px-2 py-1 rounded'>
                                         Start
                                     </button>
                                 )}
@@ -209,24 +213,14 @@ const BotsList: React.FC = () => {
                     </p>
                 </div>
                 <ul className="w-full">
-                    {botStatusExplanations && botStatusExplanations.map(({ status, desc }, index) => (
-                        <li
-                            key={index}
-                            className={`w-full flex justify-start items-baseline gap-2 py-1 border-b px-1.5
-                                  ${clickedStatus?.toLocaleLowerCase() === status.toLocaleLowerCase() ? 'bg-blue-900/60 animate-pulse' : ''}`}  // Highlight if status matches
-                        >
+                    {botStatusExplanations?.map(({ status, desc }, index) => (
+                        <li key={index} className={`w-full flex justify-start items-baseline gap-2 py-1 border-b px-1.5 ${clickedStatus?.toLocaleLowerCase() === status.toLocaleLowerCase() ? 'bg-blue-900/60 animate-pulse' : ''}`}>
                             <p className="font-bold">{status}</p> <span>: </span>
                             <p className="font-semibold">{desc}</p>
                         </li>
-                    ))
-                    }
+                    ))}
                 </ul>
             </div>
-
-            {/* Modals placement */}
-            <UserModal />
-            <CompanyModal />
-            {/* Modals placement */}
         </div>
     );
 };

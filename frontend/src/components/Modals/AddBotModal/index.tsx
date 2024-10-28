@@ -1,16 +1,26 @@
-// frontend\src\models\UserModal.tsx
 import React, { useState } from 'react';
-import { usePopupUserFormStore } from '../store/usePopupStore';
-import { userFormSchema } from '../zodSchemas/validationSchema';
-import { addNewBot } from '../scripts/apiServices';
-import { responseMessage } from '../scripts/types';
+import { usePopupUserFormStore } from '../../../store/usePopupStore';
+import { userFormSchema } from '../../../zodSchemas/validationSchema';
+import { BotsClient } from '../../../api/BotsClient';
+import { responseMessage } from '../../../scripts/types';
 
-const UserModal: React.FC = () => {
+const AddBotModal: React.FC = () => {
     const { isOpen, closePopup } = usePopupUserFormStore();
-    const [formData, setFormData] = useState({ email: '', password: '', ip_address: '', ip_port: '', ip_username: '', ip_password: '' });
+    const [formData, setFormData] = useState({
+        email: '',
+        password: '',
+        ip_address: '',
+        ip_port: '',
+        ip_username: '',
+        ip_password: ''
+    });
     const [zodErrors, setZodErrors] = useState<{ email?: string; password?: string }>({});
-    const [resMsg, setResMsg] = useState<responseMessage | null>(null); // Track the response message
-    const [disableSubmitBtn, setDisableSubmitBtn] = useState<boolean>(false); // Track the response message
+    const [resMsg, setResMsg] = useState<responseMessage | null>(null);
+    const [disableSubmitBtn, setDisableSubmitBtn] = useState<boolean>(false);
+
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                   Handle Change Of Fields                                  */
+    /* ------------------------------------------------------------------------------------------ */
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -19,9 +29,14 @@ const UserModal: React.FC = () => {
         });
     };
 
+    /* ------------------------------------------------------------------------------------------ */
+    /*                               Handle Add New Bot Form Submit                               */
+    /* ------------------------------------------------------------------------------------------ */
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setDisableSubmitBtn(true);
+
         const result = userFormSchema.safeParse(formData);
         if (!result.success) {
             const formErrors: { email?: string; password?: string } = {};
@@ -32,43 +47,61 @@ const UserModal: React.FC = () => {
             setTimeout(() => {
                 setDisableSubmitBtn(false);
             }, 5000);
-        } else {
-            setZodErrors({});
-            try {
-                const response = await addNewBot(formData);
-                console.log('response::', response);
+            return;
+        }
 
-                // Use the exact message from the backend response
-                if (response.error) {
-                    setResMsg({ type: false, status: 'Error', descrip: response.error });
-                } else {
-                    setResMsg({ type: true, status: 'Success', descrip: response.status });
-                }
+        setZodErrors({});
 
-            } catch (error) {
-                setResMsg({ type: false, status: 'Error', descrip: 'An error occurred while adding the bot' });
-                console.error('Error submitting form:', error);
-            } finally {
-                setTimeout(() => {
-                    // if (resMsg && !resMsg.type) {
-                    closePopup();
-                    setFormData({ email: '', password: '', ip_address: '', ip_port: '', ip_username: '', ip_password: '' });
-                    setResMsg(null);
-                    // }
-                    setDisableSubmitBtn(false);
-                }, 5000);
+        try {
+            const response = await BotsClient.addNewBot(formData);
+
+            if ('error' in response) {
+                setResMsg({ type: false, status: 'Error', descrip: response.error });
+            } else {
+                setResMsg({ type: true, status: 'Success', descrip: response.status });
             }
+        } catch (error) {
+            setResMsg({
+                type: false,
+                status: 'Error',
+                descrip: 'An error occurred while adding the bot'
+            });
+            console.error('Error submitting form:', error);
+        } finally {
+            setTimeout(() => {
+                closePopup();
+                setFormData({
+                    email: '',
+                    password: '',
+                    ip_address: '',
+                    ip_port: '',
+                    ip_username: '',
+                    ip_password: ''
+                });
+                setResMsg(null);
+                setDisableSubmitBtn(false);
+            }, 5000);
         }
     };
 
+    /* -------------------------------------------- X ------------------------------------------- */
+
     if (!isOpen) return null;
+
+    /* ------------------------------------------------------------------------------------------ */
+    /*                                              X                                             */
+    /* ------------------------------------------------------------------------------------------ */
 
     return (
         <div className="fixed inset-0 flex justify-center items-center bg-gray-700 bg-opacity-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
                 <div className="flex justify-between items-end border-b py-1.5 mb-2.5">
                     <h2 className="text-xl font-bold m-0">Add New Bot...</h2>
-                    <button type="button" onClick={closePopup} className="bg-red-500 text-white px-4 py-1 rounded">
+                    <button
+                        type="button"
+                        onClick={closePopup}
+                        className="bg-red-500 text-white px-4 py-1 rounded"
+                    >
                         X
                     </button>
                 </div>
@@ -84,7 +117,9 @@ const UserModal: React.FC = () => {
                 <form onSubmit={handleSubmit}>
                     <h6 className="text-lg font-semibold">LinkedIn Info</h6>
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">Email <span className="text-red-300">*</span></label>
+                        <label className="block font-bold mb-1">
+                            Email <span className="text-red-300">*</span>
+                        </label>
                         <input
                             name="email"
                             type="email"
@@ -96,7 +131,9 @@ const UserModal: React.FC = () => {
                     </div>
 
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">Password <span className="text-red-300">*</span></label>
+                        <label className="block font-bold mb-1">
+                            Password <span className="text-red-300">*</span>
+                        </label>
                         <input
                             name="password"
                             type="password"
@@ -107,7 +144,9 @@ const UserModal: React.FC = () => {
                         {zodErrors.password && <p className="text-red-500">{zodErrors.password}</p>}
                     </div>
 
-                    <h6 className="text-lg font-semibold">Proxy Info <strong className='italic text-xs'>(not required. bot will run on default IP address)</strong></h6>
+                    <h6 className="text-lg font-semibold">
+                        Proxy Info <strong className='italic text-xs'>(not required. bot will run on default IP address)</strong>
+                    </h6>
 
                     <div className="flex justify-between gap-2 items-center">
                         <div className="mb-4 w-4/5">
@@ -118,7 +157,6 @@ const UserModal: React.FC = () => {
                                 value={formData.ip_address}
                                 onChange={handleChange}
                                 className="border p-2 w-full"
-                                disabled={false}
                             />
                         </div>
                         <div className="mb-4 w-1/5">
@@ -129,7 +167,6 @@ const UserModal: React.FC = () => {
                                 value={formData.ip_port}
                                 onChange={handleChange}
                                 className="border p-2 w-full"
-                                disabled={false}
                             />
                         </div>
                     </div>
@@ -143,7 +180,6 @@ const UserModal: React.FC = () => {
                                 value={formData.ip_username}
                                 onChange={handleChange}
                                 className="border p-2 w-full"
-                                disabled={false}
                             />
                         </div>
 
@@ -155,13 +191,16 @@ const UserModal: React.FC = () => {
                                 value={formData.ip_password}
                                 onChange={handleChange}
                                 className="border p-2 w-full"
-                                disabled={false}
                             />
                         </div>
                     </div>
 
                     <div className="flex justify-end mt-4">
-                        <button type="submit" disabled={disableSubmitBtn} className={`bg-blue-500 text-white px-4 py-2 rounded ${disableSubmitBtn ? 'bg-blue-400 cursor-not-allowed' : ''}`}>
+                        <button
+                            type="submit"
+                            disabled={disableSubmitBtn}
+                            className={`bg-blue-500 text-white px-4 py-2 rounded ${disableSubmitBtn ? 'bg-blue-400 cursor-not-allowed' : ''}`}
+                        >
                             Add and Start Bot
                         </button>
                     </div>
@@ -171,4 +210,4 @@ const UserModal: React.FC = () => {
     );
 };
 
-export default UserModal;
+export default AddBotModal;

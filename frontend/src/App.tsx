@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import BotsList from './components/BotsList';
-import BotInfo from './components/BotInfo';
+import BotsList from './pages/BotsList';
+import BotInfo from './pages/BotInfo';
 
 const App: React.FC = () => {
   return (

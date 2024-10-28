@@ -20,10 +20,21 @@ export interface SocialMediaConfig {
     passwordSelector: string;
     signinButtonSelector: string;
     homeUrl: string;
-    captcha?: string;
+    captcha?: string[];
     postLikeBtn: string;
     postReactionDiv?: string;
     headerSearchBtn?: string;
     headerSearchInput: string;
     headerBtnFilters?: string;
+}
+
+export interface BotConfig {
+    hibernationTime: number;
+    platforms: string[];
+    tabSwitchDelay: number;
+    minActionDelay: number;
+    maxActionDelay: number;
+    retryAttempts: number;
+    actionsPerPlatform: number;
+    selectedPlatform: string;
 }

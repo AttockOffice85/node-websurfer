@@ -3,13 +3,21 @@ import { ElementHandle, Page } from 'puppeteer';
 import Logger from './logger';
 import { generateRandomID, dynamicWait } from '../src/utils';
 import { socialMediaConfigs } from '../config/SocialMedia'; // Import the social media config
+import { botConfig } from '../config/BotConfig';
+import { SocialMediaConfig } from './types';
 
 const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
 const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
-let platform = process.env.PLATFORM;
-if (!platform) platform = 'linkedin';
 
-const platformConfig = socialMediaConfigs[platform];
+// Mutable variable for platformConfig
+let platformConfig: SocialMediaConfig;
+
+// Helper function to update platformConfig based on the current botConfig
+function updatePlatformConfig() {
+    const platform = botConfig.selectedPlatform || 'linkedin';
+    platformConfig = socialMediaConfigs[platform];
+    console.log(`Updated platformConfig: ${JSON.stringify(platformConfig)}`);
+}
 
 // Utility function to wait for an element to appear with retries
 async function waitForElement(page: Page, selector: string, maxRetries: number = 5, delay: number = 1000) {
@@ -24,6 +32,7 @@ async function waitForElement(page: Page, selector: string, maxRetries: number =
 }
 
 export async function performHumanActions(page: Page, logger: Logger) {
+    updatePlatformConfig();
     logger.log('Starting fun:: performHumanActions');
 
     // Scroll behavior - scroll down, then scroll back up, and then skip some content
@@ -181,6 +190,7 @@ export async function typeWithHumanLikeSpeed(page: Page, selector: string, text:
 }
 
 export async function likeRandomPosts(page: Page, count: number, logger: Logger): Promise<void> {
+    updatePlatformConfig();
     logger.log('Starting fun:: likeRandomPosts');
     let likeButtons: any[] = [];
     let previousHeight = 0;
@@ -237,6 +247,7 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
 }
 
 export async function performProfileSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
+    updatePlatformConfig();
     logger.log('Starting fun:: performProfileSearchAndLike');
     if (platformConfig.name !== 'Instagram') {
         // Wait for search input to be available

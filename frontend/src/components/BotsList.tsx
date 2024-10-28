@@ -42,7 +42,7 @@ const BotsList: React.FC = () => {
 
                 const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'].includes(bot.status));
 
-                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code', 'IP Config', 'paused'].includes(bot.status));
+                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code', 'IP Config', 'paused', 'Entered hibernation'].includes(bot.status));
                 setBotsAttentionReq(botsAttentionReqArr?.length);
                 setNoOfInactiveBots(botsInActiveArr.length);
                 const botsActive = data.length - botsInActiveArr.length;
@@ -119,6 +119,7 @@ const BotsList: React.FC = () => {
             case 'Starting':
                 return 'text-yellow-800';
             case 'Processing...':
+            case 'Entered hibernation':
                 return 'text-blue-800';
             default:
                 return 'text-gray-800';

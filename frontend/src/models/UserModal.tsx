@@ -8,6 +8,9 @@ import { responseMessage } from '../scripts/types';
 const UserModal: React.FC = () => {
     const { isOpen, closePopup } = usePopupUserFormStore();
     const [formData, setFormData] = useState({ email: '', password: '', ip_address: '', ip_port: '', ip_username: '', ip_password: '' });
+    const [platforms, setPlatforms] = useState({
+        linkedin: true, instagram: false, facebook: false,
+    });
     const [zodErrors, setZodErrors] = useState<{ email?: string; password?: string }>({});
     const [resMsg, setResMsg] = useState<responseMessage | null>(null); // Track the response message
     const [disableSubmitBtn, setDisableSubmitBtn] = useState<boolean>(false); // Track the response message
@@ -19,9 +22,21 @@ const UserModal: React.FC = () => {
         });
     };
 
+    const handlePlatformChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, checked } = e.target;
+        setPlatforms((prev) => ({ ...prev, [name]: checked }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setDisableSubmitBtn(true);
+
+        if (!platforms.linkedin) {
+            setResMsg({ type: false, status: 'Error', descrip: 'LinkedIn is required.' });
+            setDisableSubmitBtn(false);
+            return;
+        }
+
         const result = userFormSchema.safeParse(formData);
         if (!result.success) {
             const formErrors: { email?: string; password?: string } = {};
@@ -35,7 +50,7 @@ const UserModal: React.FC = () => {
         } else {
             setZodErrors({});
             try {
-                const response = await addNewBot(formData);
+                const response = await addNewBot({ ...formData, platforms });
                 console.log('response::', response);
 
                 // Use the exact message from the backend response
@@ -53,6 +68,7 @@ const UserModal: React.FC = () => {
                     // if (resMsg && !resMsg.type) {
                     closePopup();
                     setFormData({ email: '', password: '', ip_address: '', ip_port: '', ip_username: '', ip_password: '' });
+                    setPlatforms({ linkedin: true, instagram: false, facebook: false });
                     setResMsg(null);
                     // }
                     setDisableSubmitBtn(false);
@@ -82,7 +98,7 @@ const UserModal: React.FC = () => {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <h6 className="text-lg font-semibold">LinkedIn Info</h6>
+                    <h6 className="text-lg font-semibold">Bots Info</h6>
                     <div className="mb-4">
                         <label className="block font-bold mb-1">Email <span className="text-red-300">*</span></label>
                         <input
@@ -105,6 +121,24 @@ const UserModal: React.FC = () => {
                             className="border p-2 w-full"
                         />
                         {zodErrors.password && <p className="text-red-500">{zodErrors.password}</p>}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="font-bold mr-2.5">Platforms:</label>
+                        <div className="inline-flex justify-start items-center gap-2.5">
+                            <span>
+                                <i className='font-semibold text-sm'>LinkedIn:</i> &nbsp;
+                                <input type="checkbox" name="linkedin" checked={platforms.linkedin} onChange={handlePlatformChange} disabled />
+                            </span>
+                            <span>
+                                <i className='font-semibold text-sm'>Instagram:</i> &nbsp;
+                                <input type="checkbox" name="instagram" checked={platforms.instagram} onChange={handlePlatformChange} />
+                            </span>
+                            <span>
+                                <i className='font-semibold text-sm'>Facebook:</i> &nbsp;
+                                <input type="checkbox" name="facebook" checked={platforms.facebook} onChange={handlePlatformChange} />
+                            </span>
+                        </div>
                     </div>
 
                     <h6 className="text-lg font-semibold">Proxy Info <strong className='italic text-xs'>(not required. bot will run on default IP address)</strong></h6>

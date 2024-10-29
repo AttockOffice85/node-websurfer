@@ -22,12 +22,20 @@ export interface responseMessage {
 
 export const botStatusExplanations = [
     {
+        status: '! log file',
+        desc: 'No logs fond for the bot. Start the bot!',
+    },
+    {
         status: 'Active',
         desc: 'Bot is live and working.',
     },
     {
         status: 'Processing...',
         desc: 'Bot working on the posts.',
+    },
+    {
+        status: 'Paused',
+        desc: 'Bot is paused. Resolve issue manually.',
     },
     {
         status: 'Captcha/Code | IP Config',
@@ -68,5 +76,9 @@ export const botStatusExplanations = [
     {
         status: 'Active | Processing + Start Btn',
         desc: 'The bot is in trouble, need immediate attention.',
+    },
+    {
+        status: 'Entered hibernation',
+        desc: 'All platforms are visited once. Bot will automatically start almost after 60 minutes.',
     },
 ];

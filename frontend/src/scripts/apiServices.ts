@@ -8,6 +8,7 @@ export const addNewBot = async (formData: {
     ip_port?: string;
     ip_username?: string;
     ip_password?: string;
+    platforms: { linkedin: boolean; instagram: boolean; facebook: boolean };
 }) => {
     if (!apiUrl) {
         throw new Error('API URL is not defined');

@@ -1,26 +1,100 @@
-// bot.ts
+// backend/bot.ts
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
-import { performHumanActions, typeWithHumanLikeSpeed, performLinkedInSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
+import { EventEmitter } from 'events';
+import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
 import Logger from './scripts/logger';
-import { BrowserProfile, Company } from './scripts/types';
-import { confirmIPConfiguration } from './src/utils';
+import { BrowserProfile, Company, SocialMediaConfig } from './scripts/types';
+import { confirmIPConfiguration, dynamicWait } from './src/utils';
 import { stopBot } from './index';
+import { socialMediaConfigs } from './config/SocialMedia'; // Import the social media platformConfig
+import { botConfig } from './config/BotConfig';
 
 puppeteer.use(StealthPlugin());
 
-// Move the file reading logic into a function
 function getCompaniesData() {
     const companiesData = JSON.parse(fs.readFileSync('./data/companies-data.json', 'utf-8'));
     return companiesData.companies;
 }
 
+function getUsersData() {
+    const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
+    return usersData.users;
+}
+
 const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
+
+export class CaptchaMonitor extends EventEmitter {
+    private page: Page;
+    private platformConfig: SocialMediaConfig;
+    private logger: Logger;
+    private isMonitoring: boolean = false;
+    private monitorInterval: NodeJS.Timeout | null = null;
+
+    constructor(page: Page, platformConfig: any, logger: Logger) {
+        super();
+        this.page = page;
+        this.platformConfig = platformConfig;
+        this.logger = logger;
+    }
+
+    startMonitoring() {
+        if (this.isMonitoring) return;
+
+        this.isMonitoring = true;
+        this.monitorInterval = setInterval(async () => {
+            try {
+                const currentUrl = this.page.url();
+                if (this.platformConfig.captcha && this.platformConfig.captcha.some((captchaString: string) => currentUrl.includes(captchaString))) {
+                    this.logger.log('Captcha detected during operation');
+                    this.emit('captchaDetected');
+
+                    // Wait for captcha resolution
+                    await this.waitForCaptchaResolution();
+                    this.emit('captchaResolved');
+                }
+            } catch (error) {
+                this.logger.error(`Error in captcha monitoring: ${error}`);
+            }
+        }, 2000); // Check every 2 seconds
+    }
+
+    stopMonitoring() {
+        if (this.monitorInterval) {
+            clearInterval(this.monitorInterval);
+            this.monitorInterval = null;
+        }
+        this.isMonitoring = false;
+    }
+
+    private async waitForCaptchaResolution(): Promise<void> {
+        try {
+            await Promise.race([
+                new Promise<void>((resolve) => {
+                    const checkInterval = setInterval(async () => {
+                        const currentUrl = await this.page.url();
+                        if (currentUrl === this.platformConfig.homeUrl) {
+                            clearInterval(checkInterval);
+                            this.logger.log('Captcha resolved successfully');
+                            resolve();
+                        }
+                    }, 3000);
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Captcha timeout')), 300000)
+                )
+            ]);
+        } catch (error) {
+            this.logger.error(`Captcha resolution timeout: ${error}`);
+            throw error;
+        }
+    }
+}
 
 class BrowserProfileManager {
     private baseDir: string;
@@ -61,13 +135,13 @@ async function runBot() {
         console.error('Bot credentials not provided');
         process.exit(1);
     }
-    let botUserName = username.split('@')[0];
 
+    let botUserName = username.split('@')[0];
     const logger = new Logger(botUserName);
     logger.log(`Starting bot: ${botUserName}`);
 
     let browser: Browser | null = null;
-    let page: Page | null = null;
+    let pages: Map<string, Page> = new Map();
 
     const profileManager = new BrowserProfileManager();
     const userProfile: BrowserProfile = {
@@ -84,103 +158,170 @@ async function runBot() {
             args: ['--no-sandbox', '--disable-setuid-sandbox',
                 ...(ip_address && ip_port ? [
                     `--proxy-server=http://${ip_address}:${ip_port}`,
-                    '--disable-web-security', // Temporarily disable web security
-                    '--ignore-certificate-errors', // Ignore SSL certificate errors
-                    '--enable-logging', // Enable logging
-                    '--v=1' // Verbose logging
+                    '--disable-web-security',
+                    '--ignore-certificate-errors',
+                    '--enable-logging',
+                    '--v=1'
                 ] : [])
             ]
         });
 
-        let pages = await browser.pages();
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-        page = pages[0];
+        const users = getUsersData();
+        const user = users.find((u: { username: string; }) => u.username === username);
+        const userPlatforms = user.platforms;
+
+        // Initialize platforms up to maxTabs
+        for (let i = 0; i < botConfig.platforms.length; i++) {
+            const platform = botConfig.platforms[i];
+            if (userPlatforms.includes(platform)) {
+                logger.log(`${platform} :: <selc : usr> :: ${JSON.stringify(userPlatforms)}`);
+                const page = await browser.newPage();
+                await page.setViewport({ width: 1920, height: 1080 });
+                pages.set(platform, page);
+
+                await page.goto(socialMediaConfigs[platform].loginUrl);
+                logger.log(`Initialized ${platform} tab`);
+                await dynamicWait(3000, 5000);
+            }
+        }
+        
+        {   // this code block is only used to close the first empty tab.
+            let allPages = await browser.pages();
+            let page1st = allPages[0];
+            await page1st.close();
+            await dynamicWait(300, 500);
+        }
+
+        let [, page] = Array.from(pages)[0];
         if (ip_address && ip_port && ip_username && ip_password) {
             await page.authenticate({ username: ip_username, password: ip_password });
-
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
-
             const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
 
             if (!isIPConfigured) {
-                logger.error('IP configuration failed, after 3 attempts. Stoping bot from further process.');
+                logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
                 stopBot(username);
             }
         } else {
             logger.log("Continue Without Proxy!");
         }
 
-        await page.setViewport({ width: 1920, height: 1080 });
-
-        // Login process
-        await page.goto('https://www.linkedin.com/login');
-
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-        // Check if the login form is present
-        const isLoginPage = await page.$('#username');
-
-        if (isLoginPage) {
-            console.log("User is not logged in. Proceeding with login...");
-
-            // Type credentials with human-like speed
-            await typeWithHumanLikeSpeed(page, '#username', username, logger);
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
-            await typeWithHumanLikeSpeed(page, '#password', password, logger);
-
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-            await page.click('.login__form_action_container button');
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-            console.log("Login successful. Proceeding to home page.");
-        } else if (page.url() === "https://www.linkedin.com/feed/") {
-            logger.log('On the homepage...');
-        } else {
-            logger.log('Unknown Error In Login Process...');
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
-
-        if (page.url().includes('checkpoint/challenge/')) {
-            logger.log('Captcha/Code Verification required...');
-
-            // Wait for the user to manually resolve the captcha
-            await new Promise<void>((resolve) => {
-                const checkPage = async () => {
-                    const currentUrl = page?.url();
-                    if (currentUrl === "https://www.linkedin.com/feed/") {
-                        logger.log('Captcha verification successful. Continuing process...');
-                        resolve(); // Resolve the promise to continue the process
-                    } else {
-                        // Check again after a short delay
-                        setTimeout(checkPage, 3000); // Check every 3 seconds
-                    }
-                };
-                checkPage();
-            });
-        }
-
         while (true) {
-            await performHumanActions(page, logger);
-            await likeRandomPosts(page, noOfRandomPostsToReact, logger);
+            await dynamicWait(1000, 3000);
+            for (const [platform, page] of pages) {
 
-            const companies: Company[] = getCompaniesData(); // Dynamically read the companies data
-            companies.sort(() => Math.random() - 0.5); // Simple one-liner shuffle
+                let platformConfig = socialMediaConfigs[platform];
+                botConfig.selectedPlatform = platform;
+                await page.bringToFront();
 
-            for (const company of companies) {
-                console.log(company, " :: ", companies);
-                if (company && company.link) {
-                    await performLinkedInSearchAndLike(page, company.name, logger, company.link);
+                await dynamicWait(300, 500);
+
+                // Use the configuration for navigation
+                await page.goto(platformConfig.loginUrl);
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+                const isLoginPage = await page.$(platformConfig.usernameSelector);
+
+                if (isLoginPage) {
+                    console.log("User is not logged in. Proceeding with login...");
+
+                    await typeWithHumanLikeSpeed(page, platformConfig.usernameSelector, username, logger);
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
+                    await typeWithHumanLikeSpeed(page, platformConfig.passwordSelector, password, logger);
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                    await page.click(platformConfig.signinButtonSelector);
+                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+                    console.log("Login successful. Proceeding to home page.");
+                } else if (page.url() === platformConfig.homeUrl) {
+                    logger.log('On the homepage...');
+                } else {
+                    logger.log('Unknown Error In Login Process...');
                 }
-                await page.goto('https://www.linkedin.com/feed/');
-                await performHumanActions(page, logger);
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+
+                const captchaMonitor = new CaptchaMonitor(page, platformConfig, logger);
+
+                // Create a promise that can be used to pause/resume bot operations
+                let pausePromise: Promise<void> | null = null;
+                let pauseResolve: (() => void) | null = null;
+
+                captchaMonitor.on('captchaDetected', () => {
+                    logger.log('Bot operations paused due to captcha');
+                    pausePromise = new Promise(resolve => {
+                        pauseResolve = resolve;
+                    });
+                });
+
+                captchaMonitor.on('captchaResolved', () => {
+                    logger.log('Resuming bot operations after captcha');
+                    if (pauseResolve) {
+                        pauseResolve();
+                        pausePromise = null;
+                        pauseResolve = null;
+                    }
+                });
+
+                // Start monitoring
+                captchaMonitor.startMonitoring();
+
+                try {
+                    // Check if operations are paused due to captcha
+                    if (pausePromise) {
+                        pausePromise;
+                    }
+
+                    if (platformConfig.name === 'Instagram') {
+                        await page.goto(platformConfig.homeUrl);
+                    }
+
+                    // Perform human actions with captcha check
+                    await performHumanActions(page, logger);
+
+                    // Like random posts with captcha check
+                    await likeRandomPosts(page, noOfRandomPostsToReact, logger);
+
+                    const companies: Company[] = getCompaniesData();
+                    companies.sort(() => Math.random() - 0.5);
+
+                    for (const company of companies) {
+                        let companyURL = null;
+                        if (company.instaLink && platformConfig.name === 'Instagram') {
+                            companyURL = company.instaLink;
+                        } else if (company.link && platformConfig.name === 'LinkedIn') {
+                            companyURL = company.link;
+                        } else if (company.fbLink && platformConfig.name === 'Facebook') {
+                            companyURL = company.fbLink;
+                        }
+
+                        if (company && companyURL) {
+                            await performProfileSearchAndLike(page, company.name, logger, companyURL);
+                        }
+
+                        // Add random delay between companies
+                        await dynamicWait((Math.random() * 5000), 5000);
+                        await page.goto(platformConfig.homeUrl);
+
+                        await performHumanActions(page, logger);
+                    }
+                } catch (error) {
+                    logger.error(`Error in main loop: ${error}`);
+                    // Add delay before retrying the main loop
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                }
+
+                logger.log(`Operations completed on ${platform}. Switching tab for next platform in a few minutes.`);
+                await dynamicWait(botConfig.tabSwitchDelay * 1000 * 0.8, botConfig.tabSwitchDelay * 1000 * 1.2);
             }
+            logger.log(`All platforms are visited once. Entered hibernation for almost ${botConfig.hibernationTime} minutes`);
+            await dynamicWait(botConfig.hibernationTime * 60 * 1000 * 0.8, botConfig.hibernationTime * 60 * 1000 * 1.2);
         }
+
     } catch (error) {
         logger.error(`Bot operation error: ${error}`);
     } finally {
-        if (page) await page.close();
         if (browser) await browser.close();
     }
 }

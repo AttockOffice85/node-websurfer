@@ -10,6 +10,17 @@ const BotsList: React.FC = () => {
         alert('no backend endpoint defined');
     }
 
+    // State to store the clicked bot status
+    const [clickedStatus, setClickedStatus] = useState<string | null>(null);
+
+    // Function to get the explanation of the clicked status
+    const handleStatusClick = (status: string) => {
+        setClickedStatus(status);
+        setTimeout(() => {
+            setClickedStatus(null);            
+        }, 5000);
+    };
+
     const [bots, setBots] = useState<Bot[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -31,7 +42,7 @@ const BotsList: React.FC = () => {
 
                 const botsInActiveArr = data.filter((bot: { status: string; }) => ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped'].includes(bot.status));
 
-                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code', 'IP Config'].includes(bot.status));
+                const botsAttentionReqArr = data.filter((bot: { status: string; }) => ['Captcha/Code', 'IP Config', 'paused', 'Entered hibernation'].includes(bot.status));
                 setBotsAttentionReq(botsAttentionReqArr?.length);
                 setNoOfInactiveBots(botsInActiveArr.length);
                 const botsActive = data.length - botsInActiveArr.length;
@@ -103,10 +114,12 @@ const BotsList: React.FC = () => {
                 return 'text-red-800';
             case 'Captcha/Code':
             case 'IP Config':
+            case 'paused':
                 return 'text-xl italic animate-pulse text-white bg-red-600';
             case 'Starting':
                 return 'text-yellow-800';
             case 'Processing...':
+            case 'Entered hibernation':
                 return 'text-blue-800';
             default:
                 return 'text-gray-800';
@@ -167,7 +180,8 @@ const BotsList: React.FC = () => {
                                 onClick={() => window.open(`/logs/${bot.name}`, '_blank')}>
                                 {bot.name}
                             </td>
-                            <td className={`py-2 px-4 border-b font-semibold text-lg ${getStatusColor(bot.status)}`}>
+                            <td className={`py-2 px-4 border-b font-semibold text-lg capitalize ${getStatusColor(bot.status)} cursor-pointer hover:underline underline-offset-4`}
+                                onClick={() => handleStatusClick(bot.status)}>
                                 {bot.status}
                             </td>
                             <td className='hidden py-2 px-4 border-b'>{bot.postCount}</td>
@@ -197,7 +211,11 @@ const BotsList: React.FC = () => {
                 </div>
                 <ul className="w-full">
                     {botStatusExplanations && botStatusExplanations.map(({ status, desc }, index) => (
-                        <li key={index} className={`w-full flex justify-start items-baseline gap-2 py-1 border-b`}>
+                        <li
+                            key={index}
+                            className={`w-full flex justify-start items-baseline gap-2 py-1 border-b px-1.5
+                                  ${clickedStatus?.toLocaleLowerCase() === status.toLocaleLowerCase() ? 'bg-blue-900/60 animate-pulse' : ''}`}  // Highlight if status matches
+                        >
                             <p className="font-bold">{status}</p> <span>: </span>
                             <p className="font-semibold">{desc}</p>
                         </li>

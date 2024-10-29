@@ -49,3 +49,9 @@ export async function confirmIPConfiguration(page: Page, ip_address: string, log
 
     return ipConfigured;
 }
+
+// dynamic wait logic
+export async function dynamicWait(min: number, max: number) {
+    const time = min + Math.random() * (max - min);
+    await new Promise(resolve => setTimeout(resolve, time));
+};

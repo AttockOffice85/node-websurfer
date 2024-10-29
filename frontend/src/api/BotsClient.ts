@@ -29,7 +29,7 @@ export const BotsClient = {
   /* -------------------------------------------------------------------------------------------- */
 
   fetchBots: async (): Promise<BotResponse> => {
-    const response = await fetch(`${apiUrl}/all-bots`);
+    const response = await fetch(`${apiUrl}/bot/all-bots`);
     if (!response.ok) {
       throw new Error("Failed to fetch bots");
     }
@@ -56,7 +56,7 @@ export const BotsClient = {
 
   addNewBot: async (formData: AddBotFormData) => {
     try {
-      const response = await fetch(`${apiUrl}/add-bot`, {
+      const response = await fetch(`${apiUrl}/bot/add-bot`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,7 +81,7 @@ export const BotsClient = {
   /* -------------------------------------------------------------------------------------------- */
 
   startBot: async (botName: string): Promise<Bot[]> => {
-    const response = await fetch(`${apiUrl}/start-bot`, {
+    const response = await fetch(`${apiUrl}/bot/start-bot`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -93,7 +93,7 @@ export const BotsClient = {
       throw new Error("Failed to start bot");
     }
 
-    return await fetch(`${apiUrl}/all-bots`).then((res) => res.json());
+    return await fetch(`${apiUrl}/bot/all-bots`).then((res) => res.json());
   },
 
   /* -------------------------------------------------------------------------------------------- */
@@ -101,7 +101,7 @@ export const BotsClient = {
   /* -------------------------------------------------------------------------------------------- */
 
   stopBot: async (botName: string): Promise<Bot[]> => {
-    const response = await fetch(`${apiUrl}/stop-bot`, {
+    const response = await fetch(`${apiUrl}/bot/stop-bot`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -113,6 +113,6 @@ export const BotsClient = {
       throw new Error("Failed to stop bot");
     }
 
-    return await fetch(`${apiUrl}/all-bots`).then((res) => res.json());
+    return await fetch(`${apiUrl}/bot/all-bots`).then((res) => res.json());
   },
 };

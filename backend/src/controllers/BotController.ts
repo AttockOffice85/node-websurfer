@@ -4,9 +4,8 @@ import fs from 'fs';
 import * as promiseFs from 'fs/promises';
 import path from 'path';
 import { spawn } from 'child_process';
-// import { botProcesses, dynamicWait, formatDate } from '../../utils';
-import { startBot, stopBot } from '../..';
 import { botProcesses, dynamicWait, formatDate } from '../utils';
+import { startBot, stopBot } from '../..';
 
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
@@ -162,6 +161,36 @@ export const addBot = async (req: any, res: any) => {
     }
 };
 
+export const addCompany = async (req: any, res: any) => {
+    const { company_name, company_link } = req.body;
+
+    if (!company_name || !company_link) {
+        return res.status(400).json({ error: 'Company name and link are required' });
+    }
+
+    try {
+        const data = await promiseFs.readFile(companiesDataPath, 'utf-8');
+        const companiesData = JSON.parse(data);
+
+        const companyExists = companiesData.companies.some((company: { name: string; link: string }) =>
+            company.name.toLowerCase() === company_name.toLowerCase() ||
+            company.link === company_link
+        );
+
+        if (companyExists) {
+            return res.status(409).json({ error: 'Company already exists' });
+        }
+
+        companiesData.companies.push({ name: company_name, link: company_link });
+        await promiseFs.writeFile(companiesDataPath, JSON.stringify(companiesData, null, 2));
+
+        res.status(201).json({ status: 'Company added successfully; bots will visit after completing one lifecycle.' });
+    } catch (error) {
+        console.error('Error adding company:', error);
+        res.status(500).json({ error: 'An error occurred while adding the company' });
+    }
+};
+
 export const startExistingBot = async (req: any, res: any) => {
     const { username } = req.body;
     const result = await handleBotStart(username, undefined, undefined, undefined, undefined, undefined, undefined, false);
@@ -223,8 +252,7 @@ const handleBotStart = async (
                 ip_address: ip_address || '',
                 ip_port: ip_port || '',
                 ip_username: ip_username || '',
-                ip_password: ip_password || '',
-                aiAPIkey: ''
+                ip_password: ip_password || ''
             };
 
             usersData.users.push(newUser);

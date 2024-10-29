@@ -21,7 +21,7 @@ export const LogsClient = {
   /* -------------------------------------------------------------------------------------------- */
 
   fetchUserLogs: async (username: string): Promise<LogResponse> => {
-    const response = await fetch(`${apiUrl}/logs/${username}`);
+    const response = await fetch(`${apiUrl}/bot/logs/${username}`);
 
     if (!response.ok) {
       const errorData: LogError = await response.json();
@@ -43,7 +43,7 @@ export const LogsClient = {
 
   clearLogs: async (username: string): Promise<LogResponse> => {
     try {
-      const response = await fetch(`${apiUrl}/logs/${username}/clear`, {
+      const response = await fetch(`${apiUrl}/bot/logs/${username}/clear`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export const LogsClient = {
   /* -------------------------------------------------------------------------------------------- */
 
   downloadLogs: async (username: string): Promise<Blob> => {
-    const response = await fetch(`${apiUrl}/logs/${username}/download`);
+    const response = await fetch(`${apiUrl}/bot/logs/${username}/download`);
 
     if (!response.ok) {
       throw new Error("Failed to download logs");

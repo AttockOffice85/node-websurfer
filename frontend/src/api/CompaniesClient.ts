@@ -15,7 +15,7 @@ export const CompaniesClient = {
   /* -------------------------------------------------------------------------------------------- */
   addNewCompany: async (formData: AddCompanyFormData) => {
     try {
-      const response = await fetch(`${apiUrl}/add-company`, {
+      const response = await fetch(`${apiUrl}/company/add-company`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

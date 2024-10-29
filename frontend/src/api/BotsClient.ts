@@ -13,6 +13,7 @@ interface AddBotFormData {
   ip_port?: string;
   ip_username?: string;
   ip_password?: string;
+  platforms: { linkedin: boolean; instagram: boolean; facebook: boolean };
 }
 
 interface BotResponse {

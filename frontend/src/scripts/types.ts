@@ -77,4 +77,8 @@ export const botStatusExplanations = [
     status: "Active | Processing + Start Btn",
     desc: "The bot is in trouble, need immediate attention.",
   },
+  {
+    status: "Entered hibernation",
+    desc: "All platforms are visited once. Bot will automatically start almost after 60 minutes.",
+  },
 ];

@@ -84,6 +84,9 @@ const BotInfo: React.FC = () => {
         <div className='container mx-auto p-4'>
             <div className='flex justify-between items-center mb-3'>
                 <h1 className='text-2xl font-bold'>Logs for {username}</h1>
+                <button type="button" className="bg-green-500/80 text-white rounded-md cursor-not-allowed px-2.5 py-1" disabled onClick={handleDownloadLogs} title='Out of order!'>
+                    Download Logs In .txt
+                </button>
                 <p className='bg-yellow-100 text-xs text-yellow-800 p-2 rounded-md'>
                     <strong>Notice:</strong> No need to refresh the page! Logs are automatically updated every 3 seconds.
                 </p>

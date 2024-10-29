@@ -4,13 +4,8 @@ import { usePopupCompanyFormStore, usePopupUserFormStore } from '../../store/use
 import UserModal from '../../components/Modals/AddBotModal';
 import AddNewCompanyModal from '../../components/Modals/AddNewCompanyModal';
 import { BotsClient } from '../../api/BotsClient';
-const apiUrl: string | undefined = process.env.REACT_APP_API_URL;
 
 const BotsList: React.FC = () => {
-    if (!apiUrl) {
-        alert('no backend endpoint defined');
-    }
-
     /* ------------------------------------------------------------------------------------------ */
     /*                            State To Store The Clicked Bot Status                           */
     /* ------------------------------------------------------------------------------------------ */
@@ -56,6 +51,7 @@ const BotsList: React.FC = () => {
             case 'Starting':
                 return 'text-yellow-800';
             case 'Processing...':
+            case 'Entered hibernation':
                 return 'text-blue-800';
             default:
                 return 'text-gray-800';
@@ -68,7 +64,6 @@ const BotsList: React.FC = () => {
 
     const fetchBotsData = async () => {
         try {
-            setLoading(true);
             const data = await BotsClient.fetchBots();
             setBots(data.bots);
             setNoOfInactiveBots(data.inactiveBots);
@@ -77,8 +72,6 @@ const BotsList: React.FC = () => {
             setError(null);
         } catch (err) {
             setError("Failed to fetch bots");
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -122,7 +115,6 @@ const BotsList: React.FC = () => {
     /*                                              X                                             */
     /* ------------------------------------------------------------------------------------------ */
 
-    if (loading) return <div className='text-center p-4'>Loading...</div>;
     if (error) return <div className='text-center p-4 text-red-500'>Error: {error}</div>;
 
     return (
@@ -152,11 +144,11 @@ const BotsList: React.FC = () => {
                     <strong>Bots require attention: </strong>  <span className='text-blue-500'>{botsAttentionReq}</span>
                 </p>
                 <div className="flex-1 flex justify-end items-center gap-3.5">
-                    {/* Button to open the popup */}
+                    {/* Button to open the openPopup */}
                     <button onClick={openPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
                         Add New Bot
                     </button>
-                    {/* Button to open the popup */}
+                    {/* Button to open the companyPopup */}
                     <button onClick={companyPopup} className="bg-blue-500 text-white px-4 py-1 float-right rounded">
                         Add New Company
                     </button>

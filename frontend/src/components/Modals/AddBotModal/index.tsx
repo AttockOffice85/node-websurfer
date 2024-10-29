@@ -14,6 +14,9 @@ const AddBotModal: React.FC = () => {
         ip_username: '',
         ip_password: ''
     });
+    const [platforms, setPlatforms] = useState({
+        linkedin: true, instagram: false, facebook: false,
+    });
     const [zodErrors, setZodErrors] = useState<{ email?: string; password?: string }>({});
     const [resMsg, setResMsg] = useState<responseMessage | null>(null);
     const [disableSubmitBtn, setDisableSubmitBtn] = useState<boolean>(false);
@@ -29,6 +32,11 @@ const AddBotModal: React.FC = () => {
         });
     };
 
+    const handlePlatformChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, checked } = e.target;
+        setPlatforms((prev) => ({ ...prev, [name]: checked }));
+    };
+
     /* ------------------------------------------------------------------------------------------ */
     /*                               Handle Add New Bot Form Submit                               */
     /* ------------------------------------------------------------------------------------------ */
@@ -36,6 +44,12 @@ const AddBotModal: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setDisableSubmitBtn(true);
+
+        if (!platforms.linkedin) {
+            setResMsg({ type: false, status: 'Error', descrip: 'LinkedIn is required.' });
+            setDisableSubmitBtn(false);
+            return;
+        }
 
         const result = userFormSchema.safeParse(formData);
         if (!result.success) {
@@ -53,7 +67,7 @@ const AddBotModal: React.FC = () => {
         setZodErrors({});
 
         try {
-            const response = await BotsClient.addNewBot(formData);
+            const response = await BotsClient.addNewBot({ ...formData, platforms });
 
             if ('error' in response) {
                 setResMsg({ type: false, status: 'Error', descrip: response.error });
@@ -78,6 +92,7 @@ const AddBotModal: React.FC = () => {
                     ip_username: '',
                     ip_password: ''
                 });
+                setPlatforms({ linkedin: true, instagram: false, facebook: false });
                 setResMsg(null);
                 setDisableSubmitBtn(false);
             }, 5000);
@@ -115,7 +130,7 @@ const AddBotModal: React.FC = () => {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <h6 className="text-lg font-semibold">LinkedIn Info</h6>
+                    <h6 className="text-lg font-semibold">Bot's Info</h6>
                     <div className="mb-4">
                         <label className="block font-bold mb-1">
                             Email <span className="text-red-300">*</span>
@@ -142,6 +157,24 @@ const AddBotModal: React.FC = () => {
                             className="border p-2 w-full"
                         />
                         {zodErrors.password && <p className="text-red-500">{zodErrors.password}</p>}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="font-bold mr-2.5">Platforms:</label>
+                        <div className="inline-flex justify-start items-center gap-2.5">
+                            <span>
+                                <input type="checkbox" name="linkedin" checked={platforms.linkedin} onChange={handlePlatformChange} disabled />&nbsp;
+                                <i className='font-semibold text-sm'>LinkedIn</i>
+                            </span>
+                            <span>
+                                <input type="checkbox" name="instagram" checked={platforms.instagram} onChange={handlePlatformChange} />&nbsp;
+                                <i className='font-semibold text-sm'>Instagram</i>
+                            </span>
+                            <span>
+                                <input type="checkbox" name="facebook" checked={platforms.facebook} onChange={handlePlatformChange} />&nbsp;
+                                <i className='font-semibold text-sm'>Facebook</i>
+                            </span>
+                        </div>
                     </div>
 
                     <h6 className="text-lg font-semibold">

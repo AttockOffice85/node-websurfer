@@ -33,6 +33,7 @@
   "dependencies": {
     "@types/express": "^5.0.0",
     "cors": "^2.8.5",
+    "winston": "^3.8.2",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "puppeteer": "^23.4.1",

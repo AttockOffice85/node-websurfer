@@ -19,7 +19,7 @@ const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
 const botStatus: { [key: string]: boolean } = {};
 
 function runBot(user: any) {
-    const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
+    const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot')], {
         env: {
             ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password,
             IP_ADDRESS: user.ip_address,

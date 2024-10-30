@@ -12,16 +12,17 @@ import { stopBot } from './index';
 import { botConfig } from './src/config/BotConfig';
 import { socialMediaConfigs } from './src/config/SocialMedia';
 import { confirmIPConfiguration, dynamicWait } from './src/utils';
+import { CONFIG } from './src/config/constants';
 
 puppeteer.use(StealthPlugin());
 
 function getCompaniesData() {
-    const companiesData = JSON.parse(fs.readFileSync('./src/data/companies-data.json', 'utf-8'));
+    const companiesData = JSON.parse(fs.readFileSync(CONFIG.DATA_PATHS.COMPANIES, 'utf-8'));
     return companiesData.companies;
 }
 
 function getUsersData() {
-    const usersData = JSON.parse(fs.readFileSync('./src/data/users-data.json', 'utf-8'));
+    const usersData = JSON.parse(fs.readFileSync(CONFIG.DATA_PATHS.USERS, 'utf-8'));
     return usersData.users;
 }
 

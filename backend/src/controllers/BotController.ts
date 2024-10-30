@@ -40,10 +40,11 @@ export const getAllBots = (req: Request, res: Response) => {
 
                 let status: string = '! log file';
                 let postCount: any = 0;
+                let platform: string | undefined = '';
                 let inactiveSince: string | undefined = '';
 
                 if (fs.existsSync(logFilePath)) {
-                    ({ status, postCount, inactiveSince } = getLatestStatus(logFilePath));
+                    ({ status, postCount, inactiveSince, platform } = getLatestStatus(logFilePath));
                 } else {
                     console.warn(`Log file not found for bot: ${botName}`);
                 }
@@ -55,6 +56,7 @@ export const getAllBots = (req: Request, res: Response) => {
                     status,
                     postCount,
                     inactiveSince,
+                    platform,
                     isRunning: !!botProcesses[botName]
                 };
             });
@@ -89,13 +91,14 @@ export const getBotLogs = (req: Request, res: Response) => {
 export const getBotStatus = (req: Request, res: Response) => {
     const { username } = req.params;
     const logPath = path.join(botLogsDir, `${username}.log`);
-    const { status, postCount, inactiveSince } = getLatestStatus(logPath);
+    const { status, postCount, inactiveSince, platform } = getLatestStatus(logPath);
 
     res.json({
         name: username,
         status,
         postCount,
         inactiveSince,
+        platform,
         isRunning: !!botProcesses[username]
     });
 };
@@ -256,7 +259,7 @@ function updateInactiveSince(logFilePath: string): string {
     return now;
 }
 
-function getLatestStatus(logFilePath: string): { status: string, postCount: number, inactiveSince?: string } {
+function getLatestStatus(logFilePath: string): { status: string, postCount: number, inactiveSince?: string, platform?: string } {
     try {
         const stats = fs.statSync(logFilePath);
         const currentSize = stats.size;
@@ -265,11 +268,15 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
         const lines = data.split('\n').filter(Boolean);
         const lastLine = [...lines].reverse().find(line => /^\[\d{2}-[A-Za-z]{3}-\d{4}:\d{1,2}:\d{2}:\d{2}:(AM|PM)\]/.test(line));
 
+        // Extracting the platform from the last line
+        const lastPlatformLine = [...lines].reverse().find(line => /SocialPlatform::\s*(\w+)/.test(line));
+        const lastPlatform = lastPlatformLine ? lastPlatformLine.match(/SocialPlatform::\s*(\w+)/)?.[1] : undefined;
+
         let status: string;
         let inactiveSince: string | undefined = botInactiveSince[logFilePath];
 
         if (!lastLine) {
-            return { status: 'failed', postCount: lines.length };
+            return { status: 'failed', postCount: lines.length, platform: lastPlatform };
         }
 
         if (currentSize === lastSize) {
@@ -309,7 +316,7 @@ function getLatestStatus(logFilePath: string): { status: string, postCount: numb
             }
         }
 
-        return { status, postCount: lines.length, inactiveSince };
+        return { status, postCount: lines.length, inactiveSince, platform: lastPlatform };
     } catch (error) {
         console.error(`Error reading log file: ${logFilePath}`, error);
         return { status: 'Processing...', postCount: 0 };

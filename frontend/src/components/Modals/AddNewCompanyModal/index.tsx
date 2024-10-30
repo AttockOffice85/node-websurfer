@@ -114,7 +114,7 @@ const AddNewCompanyModal: React.FC = () => {
 
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">Company Name</label>
+                        <label className="block font-bold mb-1">Company Name <span className="text-red-500">*</span></label>
                         <input
                             name="company_name"
                             type="text"
@@ -128,7 +128,7 @@ const AddNewCompanyModal: React.FC = () => {
                     </div>
 
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">LinkedIn Link</label>
+                        <label className="block font-bold mb-1">LinkedIn Link <span className="text-red-500">*</span></label>
                         <input
                             name="link"
                             type="text"

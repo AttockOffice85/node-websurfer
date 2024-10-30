@@ -161,6 +161,7 @@ const BotsList: React.FC = () => {
                         <th className='px-4 py-3 text-start tracking-wider border-b'>Sr. #</th>
                         <th className='py-2 px-4 text-start border-b'>Bot Name</th>
                         <th className='py-2 px-4 text-start border-b'>Status</th>
+                        <th className='py-2 px-4 text-start border-b'>Platform</th>
                         <th className='hidden py-2 px-4 text-start border-b'>Post Count</th>
                         <th className='py-2 px-4 text-start border-b'>IP Address</th>
                         <th className='py-2 px-4 text-start border-b'>IP Port</th>
@@ -175,10 +176,16 @@ const BotsList: React.FC = () => {
                                 onClick={() => window.open(`/logs/${bot.name}`, '_blank')}>
                                 {bot.name}
                             </td>
-                            <td className={`py-2 px-4 border-b font-semibold text-lg capitalize ${getStatusColor(bot.status)} cursor-pointer hover:underline underline-offset-4`}
+                            <td className={`py-2 px-4 border-b font-semibold text-lg capitalize ${getStatusColor(bot.status)} cursor-pointer hover:underline underline-offset-4 relative`}
                                 onClick={() => handleStatusClick(bot.status)}>
                                 {bot.status}
+                                {bot.inactiveSince && (
+                                    <span className="absolute pl-3 left-0 right-0 w-full top-0 bottom-0 flex items-center text-start text-xs italic bg-white/90 opacity-0 transition-opacity duration-300 hover:opacity-100 text-black">
+                                        (&nbsp;<strong>Since:</strong> {bot.inactiveSince}&nbsp;)
+                                    </span>
+                                )}
                             </td>
+                            <td className='py-2 px-4 border-b capitalize'>{bot.platform}</td>
                             <td className='hidden py-2 px-4 border-b'>{bot.postCount}</td>
                             <td className='py-2 px-4 border-b'>{bot.ip_address}</td>
                             <td className='py-2 px-4 border-b'>{bot.ip_port}</td>

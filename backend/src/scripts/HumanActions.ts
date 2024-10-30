@@ -3,13 +3,20 @@ import { ElementHandle, Page } from 'puppeteer';
 import Logger from '../services/logger';
 import { socialMediaConfigs } from '../config/SocialMedia'; // Import the social media config
 import { dynamicWait, generateRandomID } from '../utils';
+import { SocialMediaConfig } from '../types';
+import { botConfig } from '../config/BotConfig';
 
 const companyPosts: string | number | undefined = process.env.NO_OF_COMPANY_POSTS;
 const noOfCompanyPostsToReact: number = companyPosts ? parseInt(companyPosts) : 3;
-let platform = process.env.PLATFORM;
-if (!platform) platform = 'linkedin';
 
-const platformConfig = socialMediaConfigs[platform];
+// Mutable variable for platformConfig
+let platformConfig: SocialMediaConfig;
+// Helper function to update platformConfig based on the current botConfig
+function updatePlatformConfig() {
+    const platform = botConfig.selectedPlatform || 'linkedin';
+    platformConfig = socialMediaConfigs[platform];
+    console.log(`Updated platformConfig: ${JSON.stringify(platformConfig)}`);
+}
 
 // Utility function to wait for an element to appear with retries
 async function waitForElement(page: Page, selector: string, maxRetries: number = 5, delay: number = 1000) {
@@ -24,7 +31,8 @@ async function waitForElement(page: Page, selector: string, maxRetries: number =
 }
 
 export async function performHumanActions(page: Page, logger: Logger) {
-    logger.log('Starting fun:: performHumanActions');
+    updatePlatformConfig();
+    logger.log(`Starting fun:: performHumanActions on SocialPlatform:: ${platformConfig.name}`);
 
     // Scroll behavior - scroll down, then scroll back up, and then skip some content
     const scrollRandomly = async () => {
@@ -139,7 +147,8 @@ export async function performHumanActions(page: Page, logger: Logger) {
 }
 
 export async function typeWithHumanLikeSpeed(page: Page, selector: string, text: string, logger: Logger): Promise<void> {
-    logger.log('Starting fun:: typeWithHumanLikeSpeed');
+    updatePlatformConfig();
+    logger.log(`Starting fun:: typeWithHumanLikeSpeed on SocialPlatform:: ${platformConfig.name}`);
     return new Promise(async (resolve) => {
         await page.focus(selector);
 
@@ -176,7 +185,8 @@ export async function typeWithHumanLikeSpeed(page: Page, selector: string, text:
 }
 
 export async function likeRandomPosts(page: Page, count: number, logger: Logger): Promise<void> {
-    logger.log('Starting fun:: likeRandomPosts');
+    logger.log(`Starting fun:: likeRandomPosts on SocialPlatform:: ${platformConfig.name}`);
+    updatePlatformConfig();
     let likeButtons: any[] = [];
     let previousHeight = 0;
 
@@ -232,7 +242,8 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
 }
 
 export async function performProfileSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
-    logger.log('Starting fun:: performProfileSearchAndLike');
+    updatePlatformConfig();
+    logger.log(`Starting fun:: performProfileSearchAndLike on SocialPlatform:: ${platformConfig.name}`);
     // Wait for search input to be available
     await waitForElement(page, platformConfig.headerSearchInput);
 
@@ -325,7 +336,7 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
 }
 
 export async function likeRandomPostsWithReactions(page: Page, count: number, logger: Logger): Promise<void> {
-    logger.log('Starting fun:: likeRandomPostsWithReactions');
+    logger.log(`Starting fun:: likeRandomPostsWithReactions on SocialPlatform:: ${platformConfig.name}`);
     try {
         let likeButtons: any[] = [];
         let previousHeight = 0;
@@ -410,7 +421,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
 
 // Function to like posts on the company's "Posts" page
 async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
-    logger.log('Starting fun:: goToAndLikeCompanyPosts');
+    logger.log(`Starting fun:: goToAndLikeCompanyPosts on SocialPlatform:: ${platformConfig.name}`);
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
     // Find the "Posts" section in the navigation bar
     const postsTab = await waitForElement(page, 'ul.org-page-navigation__items a[href*="/posts/"]', 5, 1000);
@@ -434,7 +445,7 @@ async function goToAndLikeCompanyPosts(page: Page, logger: Logger) {
 
 // Function to perform LinkedIn follow actions
 export async function performLinkedInFollowActions(page: Page, logger: Logger) {
-    logger.log('Starting fun:: performLinkedInFollowActions');
+    logger.log(`Starting fun:: performLinkedInFollowActions on SocialPlatform:: ${platformConfig.name}`);
 
     const followUsers = async () => {
         const followButtons = await page.$$('button.follow.feed-follows-module-recommendation__follow-btn, button.follow.update-components-actor__follow-button');
@@ -474,7 +485,7 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
 
 // Function to perform LinkedIn Network Actions
 export async function performLinkedInNetworkActions(page: Page, logger: Logger) {
-    logger.log('Starting fun:: performLinkedInNetworkActions');
+    logger.log(`Starting fun:: performLinkedInNetworkActions on SocialPlatform:: ${platformConfig.name}`);
 
     // Hover and click on the "My Network" link
     await page.hover('a[href*="linkedin.com/mynetwork"]');

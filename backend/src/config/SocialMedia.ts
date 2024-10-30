@@ -23,6 +23,7 @@ export const socialMediaConfigs: Record<string, SocialMediaConfig> = {
     passwordSelector: '#pass',
     signinButtonSelector: '#loginbutton',
     homeUrl: 'https://www.facebook.com/',
+    captcha: ['checkpoint/', '/?sk=welcome'],
     postLikeBtn: 'div[aria-label="Like"]',
     postReactionDiv: 'div[aria-label="Reactions"]',
     headerSearchInput: 'input[aria-label="Search Facebook"]',

@@ -133,7 +133,7 @@ const AddBotModal: React.FC = () => {
                     <h6 className="text-lg font-semibold">Bot's Info</h6>
                     <div className="mb-4">
                         <label className="block font-bold mb-1">
-                            Email <span className="text-red-300">*</span>
+                            Email <span className="text-red-500">*</span>
                         </label>
                         <input
                             name="email"
@@ -147,7 +147,7 @@ const AddBotModal: React.FC = () => {
 
                     <div className="mb-4">
                         <label className="block font-bold mb-1">
-                            Password <span className="text-red-300">*</span>
+                            Password <span className="text-red-500">*</span>
                         </label>
                         <input
                             name="password"

@@ -8,9 +8,9 @@ import { Company } from "../types";
 /* ------------------------------------------------------------------------------------------ */
 
 export const addCompany = async (req: any, res: any) => {
-  const { company_name, company_link } = req.body;
+  const { company_name, link, fbLink, instaLink } = req.body;
 
-  if (!company_name || !company_link) {
+  if (!company_name || !link) {
     return res.status(400).json({
       error: "Company name and link are required",
     });
@@ -20,7 +20,7 @@ export const addCompany = async (req: any, res: any) => {
     const data = await fs.readFile(CONFIG.DATA_PATHS.COMPANIES, "utf-8");
     const companiesData = JSON.parse(data);
 
-    const companyExists = companiesData.companies.some((company: Company) => company.name.toLowerCase() === company_name.toLowerCase() || company.link === company_link);
+    const companyExists = companiesData.companies.some((company: Company) => company.name.toLowerCase() === company_name.toLowerCase());
 
     if (companyExists) {
       return res.status(409).json({
@@ -30,7 +30,9 @@ export const addCompany = async (req: any, res: any) => {
 
     companiesData.companies.push({
       name: company_name,
-      link: company_link,
+      link: link,
+      fbLink: fbLink,
+      instaLink: instaLink,
     });
 
     await fs.writeFile(CONFIG.DATA_PATHS.COMPANIES, JSON.stringify(companiesData, null, 2));

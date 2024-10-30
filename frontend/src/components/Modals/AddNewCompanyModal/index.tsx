@@ -8,9 +8,16 @@ const AddNewCompanyModal: React.FC = () => {
     const { isOpen, closePopup } = usePopupCompanyFormStore();
     const [formData, setFormData] = useState({
         company_name: '',
-        company_link: ''
+        link: '',
+        fbLink: '',
+        instaLink: ''
     });
-    const [zodErrors, setZodErrors] = useState<{ company_name?: string; company_link?: string }>({});
+    const [zodErrors, setZodErrors] = useState<{
+        company_name?: string;
+        link?: string;
+        fbLink?: string;
+        instaLink?: string;
+    }>({});
     const [resMsg, setResMsg] = useState<responseMessage | null>(null);
     const [disableSubmitBtn, setDisableSubmitBtn] = useState<boolean>(false);
 
@@ -35,9 +42,9 @@ const AddNewCompanyModal: React.FC = () => {
 
         const result = companyFormSchema.safeParse(formData);
         if (!result.success) {
-            const formErrors: { company_name?: string; company_link?: string } = {};
+            const formErrors: { company_name?: string; link?: string } = {};
             result.error.errors.forEach((error) => {
-                formErrors[error.path[0] as 'company_name' | 'company_link'] = error.message;
+                formErrors[error.path[0] as 'company_name' | 'link'] = error.message;
             });
             setZodErrors(formErrors);
             setTimeout(() => {
@@ -66,7 +73,9 @@ const AddNewCompanyModal: React.FC = () => {
         } finally {
             setTimeout(() => {
                 closePopup();
-                setFormData({ company_name: '', company_link: '' });
+                setFormData({
+                    company_name: '', link: '', fbLink: '', instaLink: ''
+                });
                 setResMsg(null);
                 setDisableSubmitBtn(false);
             }, 8000);
@@ -104,7 +113,6 @@ const AddNewCompanyModal: React.FC = () => {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <h6 className="text-lg font-semibold">LinkedIn's Company Profile</h6>
                     <div className="mb-4">
                         <label className="block font-bold mb-1">Company Name</label>
                         <input
@@ -120,16 +128,44 @@ const AddNewCompanyModal: React.FC = () => {
                     </div>
 
                     <div className="mb-4">
-                        <label className="block font-bold mb-1">Company Link</label>
+                        <label className="block font-bold mb-1">LinkedIn Link</label>
                         <input
-                            name="company_link"
+                            name="link"
                             type="text"
-                            value={formData.company_link}
+                            value={formData.link}
                             onChange={handleChange}
                             className="border p-2 w-full"
                         />
-                        {zodErrors.company_link && (
-                            <p className="text-red-500">{zodErrors.company_link}</p>
+                        {zodErrors.link && (
+                            <p className="text-red-500">{zodErrors.link}</p>
+                        )}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block font-bold mb-1">Facebook Link</label>
+                        <input
+                            name="fbLink"
+                            type="text"
+                            value={formData.fbLink}
+                            onChange={handleChange}
+                            className="border p-2 w-full"
+                        />
+                        {zodErrors.fbLink && (
+                            <p className="text-red-500">{zodErrors.fbLink}</p>
+                        )}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block font-bold mb-1">Instagram Link</label>
+                        <input
+                            name="instaLink"
+                            type="text"
+                            value={formData.instaLink}
+                            onChange={handleChange}
+                            className="border p-2 w-full"
+                        />
+                        {zodErrors.instaLink && (
+                            <p className="text-red-500">{zodErrors.instaLink}</p>
                         )}
                     </div>
 

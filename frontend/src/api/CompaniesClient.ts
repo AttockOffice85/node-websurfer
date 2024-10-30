@@ -6,7 +6,9 @@ if (!apiUrl) {
 
 interface AddCompanyFormData {
   company_name: string;
-  company_link: string;
+  link: string;
+  fbLink: string;
+  instaLink: string;
 }
 
 export const CompaniesClient = {

@@ -1,15 +1,17 @@
 // backend\scripts\logger.ts
 import fs from 'fs';
 import path from 'path';
+import { CONFIG } from '../config/constants';
+
+const botLogsDir = CONFIG.DATA_PATHS.LOGS_DIR;
 
 class Logger {
     private botName: string;
-    private logDir: string;
+    private logDir: string = botLogsDir;
     private logFile: string;
 
     constructor(botUsername: string) {
         this.botName = botUsername;
-        this.logDir = path.join(process.cwd(), 'botLogs');
         this.logFile = path.join(this.logDir, `${botUsername}.log`);
 
         // Create the botLogs directory if it doesn't exist

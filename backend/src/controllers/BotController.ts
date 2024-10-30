@@ -6,14 +6,15 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { botProcesses, dynamicWait, formatDate } from '../utils';
 import { startBot, stopBot } from '../..';
+import { CONFIG } from '../config/constants';
 
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
 const botInactiveSince: { [logFilePath: string]: string | undefined } = {};
 
 // Path to the data JSON files
-const usersDataPath = path.join(process.cwd(), 'src', 'data', 'users-data.json');
-const companiesDataPath = path.join(process.cwd(), 'src', 'data', 'companies-data.json');
+const usersDataPath = CONFIG.DATA_PATHS.USERS;
+const botLogsDir = CONFIG.DATA_PATHS.LOGS_DIR;
 
 /* -------------------------------------------------------------------------- */
 /*                            Controller functions                            */
@@ -22,8 +23,6 @@ const companiesDataPath = path.join(process.cwd(), 'src', 'data', 'companies-dat
 /* ------------------------------ GET REQUESTS ------------------------------ */
 
 export const getAllBots = (req: Request, res: Response) => {
-    const logDir = path.join(__dirname, '..', '..', 'botLogs');
-
     fs.readFile(usersDataPath, 'utf8', (err, data) => {
         if (err) {
             console.error(err);
@@ -35,7 +34,7 @@ export const getAllBots = (req: Request, res: Response) => {
             const botsStatus = users.map((user: { username: string; ip_address: string; ip_port: string }) => {
                 const email = user.username;
                 const botName = email.split('@')[0];
-                const logFilePath = path.join(logDir, `${botName}.log`);
+                const logFilePath = path.join(botLogsDir, `${botName}.log`);
                 const ip_address = user.ip_address;
                 const ip_port = user.ip_port;
 
@@ -70,7 +69,7 @@ export const getAllBots = (req: Request, res: Response) => {
 
 export const getBotLogs = (req: Request, res: Response) => {
     const username = req.params.username;
-    const logPath = path.join(__dirname, '..', '..', 'botLogs', `${username}.log`);
+    const logPath = path.join(botLogsDir, `${username}.log`);
 
     fs.readFile(logPath, 'utf8', (err, data) => {
         if (err) {
@@ -89,7 +88,7 @@ export const getBotLogs = (req: Request, res: Response) => {
 
 export const getBotStatus = (req: Request, res: Response) => {
     const { username } = req.params;
-    const logPath = path.join(__dirname, '..', '..', 'botLogs', `${username}.log`);
+    const logPath = path.join(botLogsDir, `${username}.log`);
     const { status, postCount, inactiveSince } = getLatestStatus(logPath);
 
     res.json({
@@ -103,7 +102,7 @@ export const getBotStatus = (req: Request, res: Response) => {
 
 export const streamBotLogs = (req: Request, res: Response) => {
     const { username } = req.params;
-    const logPath = path.join(__dirname, '..', '..', 'botLogs', `${username}.log`);
+    const logPath = path.join(botLogsDir, `${username}.log`);
 
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -158,36 +157,6 @@ export const addBot = async (req: any, res: any) => {
     } catch (error) {
         console.error('Error starting bot:', error);
         return res.status(500).send({ error: 'Failed to add bot' });
-    }
-};
-
-export const addCompany = async (req: any, res: any) => {
-    const { company_name, company_link } = req.body;
-
-    if (!company_name || !company_link) {
-        return res.status(400).json({ error: 'Company name and link are required' });
-    }
-
-    try {
-        const data = await promiseFs.readFile(companiesDataPath, 'utf-8');
-        const companiesData = JSON.parse(data);
-
-        const companyExists = companiesData.companies.some((company: { name: string; link: string }) =>
-            company.name.toLowerCase() === company_name.toLowerCase() ||
-            company.link === company_link
-        );
-
-        if (companyExists) {
-            return res.status(409).json({ error: 'Company already exists' });
-        }
-
-        companiesData.companies.push({ name: company_name, link: company_link });
-        await promiseFs.writeFile(companiesDataPath, JSON.stringify(companiesData, null, 2));
-
-        res.status(201).json({ status: 'Company added successfully; bots will visit after completing one lifecycle.' });
-    } catch (error) {
-        console.error('Error adding company:', error);
-        res.status(500).json({ error: 'An error occurred while adding the company' });
     }
 };
 
@@ -276,8 +245,8 @@ const handleBotStart = async (
 };
 
 function getErrorStatus(line: string): string | null {
-    const errors = ['Error', 'timeout of', 'ERROR', 'crashed after', 'Session ended', 'Breaking forever', 'Stopped', 'Manually stopped', 'Captcha/Code', 'IP Config', 'paused', 'Entered hibernation'];
-    const matchedError = errors.find(error => line.includes(error));
+    const errors = CONFIG.BOT_LOG_ERRORS;
+    const matchedError = errors.find((error: string) => line.includes(error));
     return matchedError || null;
 }
 

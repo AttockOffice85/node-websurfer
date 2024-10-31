@@ -174,10 +174,12 @@ async function runBot() {
             const users = getUsersData();
             const user = users.find((u: { username: string; }) => u.username === username);
             const userPlatforms = user.platforms;
-
+            let botConfigPlatforms = botConfig.platforms;
+            botConfigPlatforms = botConfigPlatforms.sort(() => Math.random() - 0.5);
+            
             // Initialize platforms up to maxTabs
-            for (let i = 0; i < botConfig.platforms.length; i++) {
-                const platform = botConfig.platforms[i];
+            for (let i = 0; i < botConfigPlatforms.length; i++) {
+                const platform = botConfigPlatforms[i];
                 if (userPlatforms.includes(platform)) {
                     logger.log(`${platform} :: <selc : usr> :: ${JSON.stringify(userPlatforms)}`);
                     const page = await browser.newPage();

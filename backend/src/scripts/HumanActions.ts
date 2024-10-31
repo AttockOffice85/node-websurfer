@@ -45,7 +45,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
             });
 
             // Simulate reading by waiting a bit after scrolling
-            await dynamicWait(5000, 15000); // 5-15 seconds delay (simulate reading)
+            await dynamicWait(50, 150);
         }
 
         // Occasionally scroll back up
@@ -53,7 +53,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
             await page.evaluate(() => {
                 window.scrollBy(0, -(200 + Math.random() * 300)); // Scroll back up a bit
             });
-            await dynamicWait(3000, 8000); // 3-8 seconds delay (simulating thinking or checking back)
+            await dynamicWait(30, 80);
         }
 
         // Scroll down again after "rechecking"
@@ -62,7 +62,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
         });
 
         // Simulate reading again
-        await dynamicWait(6000, 15000); // 6-15 seconds delay
+        await dynamicWait(600, 1500);
     };
 
     // Text selection behavior
@@ -139,8 +139,7 @@ export async function performHumanActions(page: Page, logger: Logger) {
 
         }
 
-        // Wait between 2-5 seconds after each loop iteration
-        await dynamicWait(2000, 5000);
+        await dynamicWait(200, 500);
     }
 
     logger.log('Finished fun:: performHumanActions');
@@ -207,7 +206,7 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
         // Step 2: Scroll down to load more posts and simulate reading
         previousHeight = await page.evaluate(() => document.body.scrollHeight);
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await dynamicWait(4000, 7000); // Simulate reading by waiting 4-7 seconds after scrolling
+        await dynamicWait(4000, 7000);
 
         // Step 3: Check if the page has more content to load
         const newHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -230,13 +229,13 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
             b.scrollIntoView({ behavior: 'smooth', block: 'center' })
         );
 
-        await dynamicWait(5000, 12000); // Simulate reading for 5-12 seconds
+        await dynamicWait(5000, 12000);
 
         // Click the "Like" button
         await button.click();
 
         // Introduce a random delay after clicking "Like"
-        await dynamicWait(3000, 8000); // Wait 3-8 seconds before moving to the next post
+        await dynamicWait(300, 800);
     }
     logger.log('Finished fun:: likeRandomPosts');
 }
@@ -317,15 +316,15 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
                 if (btn) btn.style.border = '10px solid red';
             }, pageBtn);
 
-            await dynamicWait(300, 500); // Wait 0.3-0.5 seconds after clicking
+            await dynamicWait(300, 500);
             await pageBtn.hover();
-            await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
+            await dynamicWait(20, 60);
             await pageBtn.click();
 
         } else {
             logger.log('page selector not found 304')
         }
-        await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
+        await dynamicWait(300, 500);
         await facebookCompanyProfileAct(page, companyURL, logger);
     }
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
@@ -458,7 +457,7 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
                 await page.evaluate((btn) => {
                     btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, buttonToClick);
-                await dynamicWait(1000, 3000); // Wait 1-3 seconds after scrolling into view
+                await dynamicWait(100, 300);
 
                 // Click the follow button
                 await buttonToClick.click();
@@ -470,7 +469,7 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
                 }, buttonToClick);
 
                 // Wait after clicking the follow button
-                await dynamicWait(30000, 60000); // Increase the wait time (30-60 seconds)
+                await dynamicWait(3000, 6000);
             }
         }
     };
@@ -523,7 +522,7 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
             }
 
             // Wait before moving to the next invitation
-            await dynamicWait(2000, 4000); // Wait 2-4 seconds between actions
+            await dynamicWait(200, 400);
         }
     };
 
@@ -540,7 +539,7 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
             await connectButtons[randomIndex].hover();
             await connectButtons[randomIndex].click();
             logger.log('Clicked Connect button');
-            await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
+            await dynamicWait(300, 500);
         }
     };
 
@@ -556,7 +555,7 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
             await subscribeButtons[randomIndex].hover();
             await subscribeButtons[randomIndex].click();
             logger.log('Clicked Subscribe button');
-            await dynamicWait(3000, 5000); // Wait 3-5 seconds after clicking
+            await dynamicWait(300, 500);
         }
     };
 
@@ -646,7 +645,7 @@ async function facebookCompanyProfileAct(page: Page, companyURL: string, logger:
                 await anchorTag.click();
                 console.log(`Clicked on the link with href: ${companyURL}`);
 
-                await dynamicWait(3000, 5000);
+                await dynamicWait(10, 40);
 
                 if (platformConfig.postReactionDiv) {
                     await likeRandomPostsWithReactions(page, 5, logger);
@@ -654,7 +653,7 @@ async function facebookCompanyProfileAct(page: Page, companyURL: string, logger:
                     await likeRandomPosts(page, 5, logger);
                 }
 
-                await dynamicWait(3000, 5000);
+                await dynamicWait(20, 50);
 
                 break; // Stop the loop once the link is found and clicked
             } else {
@@ -662,7 +661,7 @@ async function facebookCompanyProfileAct(page: Page, companyURL: string, logger:
                 await page.evaluate((div) => div.remove(), currentDiv);
                 console.log(`Removed a div without the matching href.`);
             }
-            await dynamicWait(3000, 5000);
+            await dynamicWait(30, 60);
         } else {
             // Remove the div if no anchor tag is found
             await page.evaluate((div) => div.remove(), currentDiv);

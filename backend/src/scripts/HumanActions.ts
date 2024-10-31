@@ -244,8 +244,6 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
 export async function performProfileSearchAndLike(page: Page, searchQuery: string, logger: Logger, companyURL: string) {
     updatePlatformConfig();
     logger.log(`Starting fun:: performProfileSearchAndLike on SocialPlatform:: ${platformConfig.name}`);
-    // Wait for search input to be available
-    await waitForElement(page, platformConfig.headerSearchInput);
 
     // Check if search input is available
     const searchInput = await page.$(platformConfig.headerSearchInput);

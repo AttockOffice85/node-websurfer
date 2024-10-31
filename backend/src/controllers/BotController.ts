@@ -197,7 +197,6 @@ export const deleteExistingBot = async (req: any, res: any) => {
         // Read the current data from the JSON file
         const usersData = JSON.parse(await promiseFs.readFile(usersDataPath, 'utf8'));
 
-        stopBot(username, true);
         // Filter out the user to delete
         const updatedUsers = usersData.users.filter((user: any) => user.username.split('@')[0] !== username);
 

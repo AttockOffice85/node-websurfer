@@ -112,9 +112,10 @@ const BotsList: React.FC = () => {
         const confirmDelete = window.confirm(`Are you sure you want to delete the bot: "${botName}"?`);
         if (confirmDelete) { // Proceed if the user confirms
             try {
-                const updatedBots = await BotsClient.deleteBot(botName);
                 setLoading(true);
-                setTimeout(() => {
+                await handleStopBot(botName);
+                setTimeout(async () => {
+                    const updatedBots = await BotsClient.deleteBot(botName);
                     setBots(updatedBots);
                     setLoading(false);
                 }, 3000);
@@ -150,7 +151,7 @@ const BotsList: React.FC = () => {
 
             <AddNewCompanyModal />
 
-            {loading && <div className='w-full fixed z-50 h-full top-0 left-0 right-0 bottom-0 bg-gray-300/75 flex justify-center items-center'><p className="text-xl italic capitalize"><span className='animate-pulse'>loading...</span></p></div>}
+            {loading && <div className='w-full fixed z-50 h-full top-0 left-0 right-0 bottom-0 bg-gray-300/85 flex justify-center items-center'><p className="text-xl italic capitalize"><span className='animate-pulse'>loading...</span></p></div>}
             {/* Modals placement */}
 
             <div className='flex justify-between items-center mb-3'>

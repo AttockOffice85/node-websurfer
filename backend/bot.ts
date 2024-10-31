@@ -210,7 +210,7 @@ async function runBot() {
         }
 
         while (true) {
-            await dynamicWait(1000, 3000);
+            await dynamicWait(10, 30);
             for (const [platform, page] of pages) {
 
                 let platformConfig = socialMediaConfigs[platform];

@@ -35,7 +35,7 @@ export const BotsClient = {
     }
     const data: Bot[] = await response.json();
 
-    const botsInActiveArr = data.filter((bot) => ["Error", "timeout of", "ERROR", "crashed after", "Session ended", "Breaking forever", "Stopped", "Manually stopped"].includes(bot.status));
+    const botsInActiveArr = data.filter((bot) => ["Error", "timeout of", "ERROR", "crashed after", "Session ended", "Breaking forever", "Stopped", "Manually stopped", "! log file"].includes(bot.status));
 
     const botsAttentionReqArr = data.filter((bot) => ["Captcha/Code", "IP Config", "paused"].includes(bot.status));
 
@@ -103,6 +103,26 @@ export const BotsClient = {
   stopBot: async (botName: string): Promise<Bot[]> => {
     const response = await fetch(`${apiUrl}/bot/stop-bot`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: botName }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to stop bot");
+    }
+
+    return await fetch(`${apiUrl}/bot/all-bots`).then((res) => res.json());
+  },
+
+  /* -------------------------------------------------------------------------------------------- */
+  /*                                           Delete Bot                                           */
+  /* -------------------------------------------------------------------------------------------- */
+
+  deleteBot: async (botName: string): Promise<Bot[]> => {
+    const response = await fetch(`${apiUrl}/bot/delete-bot`, {
+      method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },

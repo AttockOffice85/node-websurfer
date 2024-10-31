@@ -82,11 +82,16 @@ export async function startBot(username: string) {
     retryNewUser = 0;
 }
 
-export function stopBot(username: string) {
+export function stopBot(username: string, del: boolean = false) {
     if (botProcesses[username]) {
         botStatus[username] = false; // Set the bot status to stopped
         botProcesses[username].kill(); // Stop the bot process
-        console.log(`Manually stopped bot for ${username}`);
+        if (del) {
+            // Remove the bot process and status from the tracking objects
+            delete botProcesses[username]; // Remove from botProcesses
+            delete botStatus[username]; // Remove from botStatus
+        }
+        console.log(`Manually ${del ? 'killed' : 'stopped'} the bot for ${username}`);
     } else {
         console.log(`Bot for ${username} is not running.`);
     }

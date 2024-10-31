@@ -108,7 +108,7 @@ const AddBotModal: React.FC = () => {
     /* ------------------------------------------------------------------------------------------ */
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center bg-gray-700 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-gray-700 bg-opacity-50 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
                 <div className="flex justify-between items-end border-b py-1.5 mb-2.5">
                     <h2 className="text-xl font-bold m-0">Add New Bot...</h2>
@@ -160,19 +160,19 @@ const AddBotModal: React.FC = () => {
                     </div>
 
                     <div className="mb-4">
-                        <label className="font-bold mr-2.5">Platforms:</label>
+                        <span className="font-bold mr-2.5">Platforms:</span>
                         <div className="inline-flex justify-start items-center gap-2.5">
                             <span>
-                                <input type="checkbox" name="linkedin" checked={platforms.linkedin} onChange={handlePlatformChange} disabled />&nbsp;
-                                <i className='font-semibold text-sm'>LinkedIn</i>
+                                <input type="checkbox" name="linkedin" id="linkedin" checked={platforms.linkedin} onChange={handlePlatformChange} disabled />&nbsp;
+                                <label htmlFor='linkedin' className='font-semibold text-sm'>LinkedIn</label>
                             </span>
                             <span>
-                                <input type="checkbox" name="instagram" checked={platforms.instagram} onChange={handlePlatformChange} />&nbsp;
-                                <i className='font-semibold text-sm'>Instagram</i>
+                                <input type="checkbox" name="instagram" id="instagram" checked={platforms.instagram} onChange={handlePlatformChange} />&nbsp;
+                                <label htmlFor='instagram' className='font-semibold text-sm'>Instagram</label>
                             </span>
                             <span>
-                                <input type="checkbox" name="facebook" checked={platforms.facebook} onChange={handlePlatformChange} />&nbsp;
-                                <i className='font-semibold text-sm'>Facebook</i>
+                                <input type="checkbox" name="facebook" id="facebook" checked={platforms.facebook} onChange={handlePlatformChange} />&nbsp;
+                                <label htmlFor='facebook' className='font-semibold text-sm'>Facebook</label>
                             </span>
                         </div>
                     </div>

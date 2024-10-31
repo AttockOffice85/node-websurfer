@@ -184,7 +184,7 @@ async function runBot() {
 
                 await page.goto(socialMediaConfigs[platform].loginUrl);
                 logger.log(`Initialized ${platform} tab`);
-                await dynamicWait(3000, 5000);
+                await dynamicWait(30, 50);
             }
         }
         
@@ -192,7 +192,7 @@ async function runBot() {
             let allPages = await browser.pages();
             let page1st = allPages[0];
             await page1st.close();
-            await dynamicWait(300, 500);
+            await dynamicWait(30, 50);
         }
 
         let [, page] = Array.from(pages)[0];

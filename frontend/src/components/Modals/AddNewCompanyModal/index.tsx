@@ -91,7 +91,7 @@ const AddNewCompanyModal: React.FC = () => {
     /* ------------------------------------------------------------------------------------------ */
 
     return (
-        <div className="fixed inset-0 flex justify-center items-center bg-gray-700 bg-opacity-50">
+        <div className="fixed inset-0 flex justify-center items-center bg-gray-700 bg-opacity-50 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
                 <div className="flex justify-between items-end border-b py-1.5 mb-2.5">
                     <h2 className="text-xl font-bold m-0">Add New Company...</h2>

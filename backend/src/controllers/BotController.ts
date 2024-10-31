@@ -133,10 +133,8 @@ export const streamBotLogs = (req: Request, res: Response) => {
 export const addBot = async (req: any, res: any) => {
     const { email, password, ip_address, ip_port, ip_username, ip_password, platforms } = req.body;
 
-    await dynamicWait(200, 400);
-
     if (!platforms || !platforms['linkedin']) {
-        // return res.status(400).send({ error: 'LinkedIn platform is required.' });
+        return res.status(400).send({ error: 'LinkedIn platform is required.' });
     }
 
     const platformsArray = Object.keys(platforms).filter((platform) => platforms[platform] === true);
@@ -184,6 +182,51 @@ export const stopExistingBot = (req: any, res: any) => {
     } catch (error) {
         console.error(`Failed to stop bot for ${username}:`, error);
         res.status(500).send({ error: 'Failed to stop bot' });
+    }
+};
+
+/* ------------------------------ DELETE REQUEST ------------------------------ */
+
+export const deleteExistingBot = async (req: any, res: any) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).send({ error: 'Username is required' });
+    }
+
+    try {
+        // Read the current data from the JSON file
+        const usersData = JSON.parse(await promiseFs.readFile(usersDataPath, 'utf8'));
+
+        stopBot(username, true);
+        // Filter out the user to delete
+        const updatedUsers = usersData.users.filter((user: any) => user.username.split('@')[0] !== username);
+
+        // Check if any user was actually deleted
+        if (updatedUsers.length === usersData.users.length) {
+            return res.status(404).send({ error: 'User not found' });
+        }
+        // Update the users array in the JSON structure
+        usersData.users = updatedUsers;
+
+        const logFilePath = path.join(botLogsDir, `${username}.log`);
+
+        if (fs.existsSync(logFilePath)) {
+            try {
+                fs.unlinkSync(logFilePath); // Synchronously delete the log file
+                console.log(`Deleted log file for user: ${username}`);
+            } catch (error) {
+                console.error(`Error deleting log file for user ${username}:`, error);
+            }
+        }
+
+        // Write the updated data back to the JSON file
+        await promiseFs.writeFile(usersDataPath, JSON.stringify(usersData, null, 2));
+
+        // Send a success response
+        res.status(200).send({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).send({ error: 'An error occurred while deleting the user' });
     }
 };
 

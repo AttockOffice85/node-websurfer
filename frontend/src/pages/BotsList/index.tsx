@@ -11,7 +11,7 @@ const BotsList: React.FC = () => {
     /* ------------------------------------------------------------------------------------------ */
     const [clickedStatus, setClickedStatus] = useState<string | null>(null);
     const [bots, setBots] = useState<Bot[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [noOfInactiveBots, setNoOfInactiveBots] = useState<number>(0);
     const [noOfActiveBots, setNoOfActiveBots] = useState<number>(0);
@@ -44,6 +44,8 @@ const BotsList: React.FC = () => {
             case 'Breaking forever':
             case 'Stopped':
                 return 'text-red-800';
+            case '! log file':
+                return 'text-red-600';
             case 'Captcha/Code':
             case 'IP Config':
             case 'paused':
@@ -102,6 +104,29 @@ const BotsList: React.FC = () => {
     };
 
     /* ------------------------------------------------------------------------------------------ */
+    /*                                       Handle Delete Bot                                      */
+    /* ------------------------------------------------------------------------------------------ */
+
+    const handleDeleteBot = async (botName: string) => {
+        // Show a confirmation dialog
+        const confirmDelete = window.confirm(`Are you sure you want to delete the bot: "${botName}"?`);
+        if (confirmDelete) { // Proceed if the user confirms
+            try {
+                const updatedBots = await BotsClient.deleteBot(botName);
+                setLoading(true);
+                setTimeout(() => {
+                    setBots(updatedBots);
+                    setLoading(false);
+                }, 3000);
+            } catch (err) {
+                setError("Failed to stop bot");
+            }
+        } else {
+            console.log("Bot deletion cancelled."); // Optional: log cancellation
+        }
+    };
+
+    /* ------------------------------------------------------------------------------------------ */
     /*                                     Call The Functions                                     */
     /* ------------------------------------------------------------------------------------------ */
 
@@ -124,6 +149,8 @@ const BotsList: React.FC = () => {
             <UserModal />
 
             <AddNewCompanyModal />
+
+            {loading && <div className='w-full fixed z-50 h-full top-0 left-0 right-0 bottom-0 bg-gray-300/75 flex justify-center items-center'><p className="text-xl italic capitalize"><span className='animate-pulse'>loading...</span></p></div>}
             {/* Modals placement */}
 
             <div className='flex justify-between items-center mb-3'>
@@ -189,7 +216,7 @@ const BotsList: React.FC = () => {
                             <td className='hidden py-2 px-4 border-b'>{bot.postCount}</td>
                             <td className='py-2 px-4 border-b'>{bot.ip_address}</td>
                             <td className='py-2 px-4 border-b'>{bot.ip_port}</td>
-                            <td className='py-2 px-4 border-b'>
+                            <td className='py-2 px-4 border-b flex gap-2'>
                                 {bot.isRunning ? (
                                     <button onClick={() => handleStopBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>
                                         Stop
@@ -199,6 +226,9 @@ const BotsList: React.FC = () => {
                                         Start
                                     </button>
                                 )}
+                                <button onClick={() => handleDeleteBot(bot.name)} className='bg-red-500 text-white px-2 py-1 rounded'>
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     ))}

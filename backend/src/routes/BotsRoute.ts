@@ -1,6 +1,6 @@
 // backend/src/routes/BotsRoute.ts
 import express from 'express';
-import { addBot, getAllBots, getBotLogs, getBotStatus, startExistingBot, stopExistingBot, streamBotLogs } from '../controllers/BotController';
+import { addBot, deleteExistingBot, getAllBots, getBotLogs, getBotStatus, startExistingBot, stopExistingBot, streamBotLogs } from '../controllers/BotController';
 
 const router = express.Router();
 
@@ -14,5 +14,8 @@ router.get('/stream-logs/:username', streamBotLogs);
 router.post('/add-bot', addBot);
 router.post('/start-bot', startExistingBot);
 router.post('/stop-bot', stopExistingBot);
+
+// DELETE routes
+router.delete('/delete-bot', deleteExistingBot);
 
 export default router;

@@ -32,7 +32,7 @@ export const botStatusExplanations = [
   },
   {
     status: "Processing...",
-    desc: "Bot working on the posts.",
+    desc: "Bot is live and working.",
   },
   {
     status: "Paused",

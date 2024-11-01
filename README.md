@@ -73,7 +73,7 @@ Before running this project, ensure you have the following installed on your mac
 
     Example `.env` file:
     ```env
-    REACT_APP_API_URL=http://localhost:8080
+    REACT_APP_API_URL=http://localhost:8080/api
     ```
     
 4.2. Install the required dependencies and run the frontend server:

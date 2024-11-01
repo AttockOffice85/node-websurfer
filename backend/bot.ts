@@ -168,7 +168,7 @@ async function runBot() {
                 ]
             });
 
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+            await dynamicWait(10, 20);
 
             const users = getUsersData();
             const user = users.find((u: { username: string; }) => u.username === username);
@@ -201,7 +201,7 @@ async function runBot() {
             let [, page] = Array.from(pages)[0];
             if (ip_address && ip_port && ip_username && ip_password) {
                 await page.authenticate({ username: ip_username, password: ip_password });
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
+                await dynamicWait(10, 20);
                 const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
 
                 if (!isIPConfigured) {
@@ -223,7 +223,7 @@ async function runBot() {
 
                 // Use the configuration for navigation
                 await page.goto(platformConfig.loginUrl);
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+                await dynamicWait(10, 20);
 
                 const isLoginPage = await page.$(platformConfig.usernameSelector);
 
@@ -231,11 +231,11 @@ async function runBot() {
                     console.log("User is not logged in. Proceeding with login...");
 
                     await typeWithHumanLikeSpeed(page, platformConfig.usernameSelector, username, logger);
-                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 100));
+                    await dynamicWait(2, 4);
                     await typeWithHumanLikeSpeed(page, platformConfig.passwordSelector, password, logger);
-                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                    await dynamicWait(3, 5);
                     await page.click(platformConfig.signinButtonSelector);
-                    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                    await dynamicWait(5, 6);
 
                     console.log("Login successful. Proceeding to home page.");
                 } else if (page.url() === platformConfig.homeUrl) {
@@ -243,7 +243,7 @@ async function runBot() {
                 } else {
                     logger.log('Unknown Error In Login Process...');
                 }
-                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 200));
+                await dynamicWait(10, 20);
 
                 const captchaMonitor = new CaptchaMonitor(page, platformConfig, logger);
 
@@ -265,6 +265,7 @@ async function runBot() {
                         pausePromise = null;
                         pauseResolve = null;
                     }
+                    captchaMonitor.stopMonitoring();
                 });
 
                 // Start monitoring

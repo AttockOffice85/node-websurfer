@@ -7,6 +7,7 @@ export const CONFIG = {
   BROWSERS_DIR: "./browsers",
   MAX_RETRIES: 3,
   RETRY_DELAY: 2000,
+  NO_OF_FRIEND_REQUESTS: 2,
   DATA_PATHS: {
     USERS: path.join(process.cwd(), "src", "data", "users-data.json"),
     COMPANIES: path.join(process.cwd(), "src", "data", "companies-data.json"),

@@ -29,7 +29,10 @@ export const BotsClient = {
   /* -------------------------------------------------------------------------------------------- */
 
   fetchBots: async (): Promise<BotResponse> => {
-    const response = await fetch(`${apiUrl}/bot/all-bots`);
+    const response = await fetch(`${apiUrl}/bot/all-bots`, {
+      method: "GET",
+      credentials: "include",
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch bots");
     }

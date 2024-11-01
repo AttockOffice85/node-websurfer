@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import path from "path";
 import fs from "fs";
-import { CONFIG } from "../config/constants";
+import { CONFIG } from "../config/Constants";
 
 export class LogController {
   /* ------------------------------------------------------------------------------------------ */

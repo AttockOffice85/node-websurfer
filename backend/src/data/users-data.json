@@ -3,7 +3,7 @@
     {
       "username": "afaq.ahmed10009@gmail.com",
       "password": "mySelf123$$",
-      "platforms": [ "linkedin" ],
+      "platforms": ["linkedin"],
       "ip_address": "",
       "ip_port": "",
       "ip_username": "",
@@ -12,7 +12,7 @@
     {
       "username": "attockofficeworkonly@gmail.com",
       "password": "Makhdoom123$$",
-      "platforms": [ "linkedin", "instagram", "facebook" ],
+      "platforms": ["facebook"],
       "ip_address": "",
       "ip_port": "",
       "ip_username": "",

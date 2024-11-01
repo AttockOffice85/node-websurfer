@@ -32,19 +32,13 @@ Before running this project, ensure you have the following installed on your mac
     cd node-websurfer
     ```
 
-3. Checkout to multi-users branch:
-
-    ```bash
-    git checkout multi-users
-    ```
-
-4. Go to backend
+3. Go to backend
 
     ```bash
     cd backend
     ```
 
-4.1. Set up the environment variables:
+3.1. Set up the environment variables:
 
     Create a `.env` file in the root directory of the backend dir based on the `.env.example` file provided.
 
@@ -54,11 +48,10 @@ Before running this project, ensure you have the following installed on your mac
     NO_OF_COMPANY_POSTS=5
     NO_OF_RANDOM_POSTS=5
     NO_OF_BOTS=2
-    BOTS_NO_OF_RETRY_CRASH=2
     SERVER_PORT=8080
     ```
 
-4.2. Install the required dependencies and run the backend server:
+3.2. Install the required dependencies and run the backend server:
 
     ```bash
     npm install
@@ -68,13 +61,13 @@ Before running this project, ensure you have the following installed on your mac
     npm run dev
     ```
 
-5. Go to frontend
+4. Go to frontend
 
     ```bash
     cd frontend
     ```
 
-5.1. Set up the environment variables:
+4.1. Set up the environment variables:
 
     Create a `.env` file in the root directory of the frontend dir based on the `.env.example` file provided.
 
@@ -83,7 +76,7 @@ Before running this project, ensure you have the following installed on your mac
     REACT_APP_API_URL=http://localhost:8080
     ```
     
-5.2. Install the required dependencies and run the frontend server:
+4.2. Install the required dependencies and run the frontend server:
 
     ```bash
     npm install
@@ -98,7 +91,6 @@ Before running this project, ensure you have the following installed on your mac
 The following environment variables are required for the bot to function:
 
 - **`HEADLESS_BROWSER`**: Puppeteer browser will not show up on screen if this variable is set to _true_.
-- **`BOTS_NO_OF_RETRY_CRASH`**: The number of times a bot can retry in case of any issue.
 - **`NO_OF_COMPANY_POSTS`**: The number of company posts to interact with during each bot run.
 - **`NO_OF_RANDOM_POSTS`**: The number of posts on home to interact with during each bot run.
 - **`NO_OF_BOTS`**: Set no of bots equal to no of users defined in the users-data.json file.

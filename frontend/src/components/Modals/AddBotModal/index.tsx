@@ -6,6 +6,7 @@ import { responseMessage } from '../../../scripts/types';
 
 const AddBotModal: React.FC = () => {
     const { isOpen, closePopup } = usePopupUserFormStore();
+
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -14,6 +15,7 @@ const AddBotModal: React.FC = () => {
         ip_username: '',
         ip_password: ''
     });
+    
     const [platforms, setPlatforms] = useState({
         linkedin: true, instagram: false, facebook: false,
     });
@@ -131,6 +133,7 @@ const AddBotModal: React.FC = () => {
 
                 <form onSubmit={handleSubmit}>
                     <h6 className="text-lg font-semibold">Bot's Info</h6>
+                    
                     <div className="mb-4">
                         <label className="block font-bold mb-1">
                             Email <span className="text-red-500">*</span>

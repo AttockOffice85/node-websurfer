@@ -153,7 +153,6 @@ async function runBot() {
     const browserProfilePath = profileManager.createProfile(userProfile);
 
     try {
-
         while (true) {
             browser = await puppeteer.launch({
                 headless: headlessBrowser === 'true' ? true : false,

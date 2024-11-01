@@ -3,7 +3,6 @@
 This project is a social media bot designed to automate likes, comments, and other interactions on LinkedIn posts using Puppeteer. It interacts with company posts, using credentials and other settings provided in the `.env` file. The bot leverages Puppeteer stealth mode to avoid detection and simulates user activity on the LinkedIn platform.
 
 ## Table of Contents
-
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Environment Variables](#environment-variables)
@@ -12,9 +11,7 @@ This project is a social media bot designed to automate likes, comments, and oth
 - [License](#license)
 
 ## Prerequisites
-
 Before running this project, ensure you have the following installed on your machine:
-
 - [Node.js](https://nodejs.org/) (v14 or higher)
 - [npm](https://www.npmjs.com/get-npm)
 
@@ -32,73 +29,39 @@ Before running this project, ensure you have the following installed on your mac
     cd node-websurfer
     ```
 
-3. Go to backend
+3. Install the required dependencies:
 
     ```bash
-    cd backend
+    npm install
     ```
 
-3.1. Set up the environment variables:
+4. Set up the environment variables:
 
-    Create a `.env` file in the root directory of the backend dir based on the `.env.example` file provided.
+    Create a `.env` file in the root directory of the project based on the `.env.example` file provided.
 
     Example `.env` file:
     ```env
-    HEADLESS_BROWSER=true
+    LINKEDIN_USERNAME='your-linkedin-username'
+    LINKEDIN_PASSWORD='your-linkedin-password'
+    HUGGING_FACE_API_KEY='your-huggingface-api-key'
     NO_OF_COMPANY_POSTS=5
     NO_OF_RANDOM_POSTS=5
-    NO_OF_BOTS=2
-    SERVER_PORT=8080
-    ```
-
-3.2. Install the required dependencies and run the backend server:
-
-    ```bash
-    npm install
-    ```
-    
-    ```bash
-    npm run dev
-    ```
-
-4. Go to frontend
-
-    ```bash
-    cd frontend
-    ```
-
-4.1. Set up the environment variables:
-
-    Create a `.env` file in the root directory of the frontend dir based on the `.env.example` file provided.
-
-    Example `.env` file:
-    ```env
-    REACT_APP_API_URL=http://localhost:8080
-    ```
-    
-4.2. Install the required dependencies and run the frontend server:
-
-    ```bash
-    npm install
-    ```
-
-    ```bash
-    npm run start
     ```
 
 ## Environment Variables
-
 The following environment variables are required for the bot to function:
 
-- **`HEADLESS_BROWSER`**: Puppeteer browser will not show up on screen if this variable is set to _true_.
+- **`LINKEDIN_USERNAME`**: Your LinkedIn account username.
+- **`LINKEDIN_PASSWORD`**: Your LinkedIn account password.
+- **`HUGGING_FACE_API_KEY`**: An API key from Hugging Face for comment generation or sentiment analysis.
 - **`NO_OF_COMPANY_POSTS`**: The number of company posts to interact with during each bot run.
 - **`NO_OF_RANDOM_POSTS`**: The number of posts on home to interact with during each bot run.
-- **`NO_OF_BOTS`**: Set the number of bots equal to the number of users defined in the `users-data.json` file.
-- **`SERVER_PORT`**: Set port to 8080.
-- **`REACT_APP_API_URL`**: Do not add '/' at the end of the backend URL.
 
 ## Usage
 
 ### Running the bot in development mode
 
-<http://localhost:3000> for frontend
+To start the bot in development mode (using `ts-node` to compile on the fly):
+
+```bash
+npm run dev

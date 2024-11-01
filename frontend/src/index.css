@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#console-logs {
+  max-height: calc(100vh - 85px);
+}

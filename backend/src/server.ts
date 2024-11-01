@@ -1,13 +1,8 @@
-// backend/src/server.ts
 import express from 'express';
-import fs from 'fs';
-import * as promiseFs from 'fs/promises';
-import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { spawn } from 'child_process';
-import { startBot, stopBot } from '../index'; // Import startBot function from index.ts
-import { botProcesses } from './utils';
+import botRoutes from './routes/BotsRoute';
+import companyRoutes from './routes/CompanyRoute';
 
 dotenv.config();
 
@@ -17,6 +12,11 @@ const port = process.env.SERVER_PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
+<<<<<<< HEAD
+// Routes
+app.use('/api/bot', botRoutes);
+app.use('/api/company', companyRoutes);
+=======
 // Store the last known file sizes
 const lastFileSizes: { [key: string]: number } = {};
 const botInactiveSince: { [logFilePath: string]: string | undefined } = {};
@@ -293,6 +293,7 @@ app.get('/stream-logs/:username', (req, res) => {
         tailProcess.kill();
     });
 });
+>>>>>>> e9304224000ea72720495a1705e4b79992d5821e
 
 app.get('/', (req, res) => {
     res.send("Hello world");
@@ -300,6 +301,9 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
     console.log(`Log server listening at http://localhost:${port}`);
+<<<<<<< HEAD
+});
+=======
 });
 
 // HELPER FUNCTIONS
@@ -396,3 +400,4 @@ const handleBotStart = async (
         return { status: `Failed to ${isNewUser ? 'add and' : ''} start bot`, error: String(error) };
     }
 };
+>>>>>>> e9304224000ea72720495a1705e4b79992d5821e

@@ -3,13 +3,13 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import Logger from './src/services/logger';
 import { botProcesses } from './src/utils';
-import Logger from './scripts/logger';
 
 dotenv.config();
 
 function getUsersData() {
-    const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
+    const usersData = JSON.parse(fs.readFileSync('./src/data/users-data.json', 'utf-8'));
     return usersData.users;
 }
 
@@ -19,7 +19,7 @@ const noOfBots: number = parseInt(process.env.NO_OF_BOTS || '1');
 const botStatus: { [key: string]: boolean } = {};
 
 function runBot(user: any) {
-    const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot.ts')], {
+    const botProcess = spawn('node', ['-r', 'ts-node/register', path.join(__dirname, 'bot')], {
         env: {
             ...process.env, BOT_USERNAME: user.username, BOT_PASSWORD: user.password,
             IP_ADDRESS: user.ip_address,
@@ -86,7 +86,7 @@ export function stopBot(username: string) {
     if (botProcesses[username]) {
         botStatus[username] = false; // Set the bot status to stopped
         botProcesses[username].kill(); // Stop the bot process
-        console.log(`Manually stopped bot for ${username}`);
+        console.log(`Manually stopped the bot for ${username}`);
     } else {
         console.log(`Bot for ${username} is not running.`);
     }

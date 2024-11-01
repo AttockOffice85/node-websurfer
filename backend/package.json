@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "concurrently \"npm run start:bot\" \"npm run start:server\"",
     "start:bot": "node dist/index.js",
-    "start:server": "node dist/logServer.js",
+    "start:server": "node dist/src/server.js",
     "dev": "ts-node-dev --respawn ./src/server.ts",
     "build:watch": "tsc -w"
   },
@@ -33,6 +33,7 @@
   "dependencies": {
     "@types/express": "^5.0.0",
     "cors": "^2.8.5",
+    "winston": "^3.8.2",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "puppeteer": "^23.4.1",

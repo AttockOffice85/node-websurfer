@@ -11,5 +11,11 @@ export const userFormSchema = z.object({
 
 export const companyFormSchema = z.object({
     company_name: z.string().min(2, { message: 'Invalid Company Name' }),
-    company_link: z.string().min(6, { message: `Provide a valid profile linkedin's link` }),
+    link: z.string().min(6, { message: `Provide a valid profile linkedin's link` }),
+    fbLink: z.union([z.string().length(0, { message: `Provide a valid profile linkedin's link` }), z.string().min(6)])
+        .optional()
+        .transform(e => e === "" ? undefined : e),
+    instaLink: z.union([z.string().length(0, { message: `Provide a valid profile linkedin's link` }), z.string().min(6)])
+        .optional()
+        .transform(e => e === "" ? undefined : e),
 });

@@ -5,23 +5,24 @@ import { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 import { EventEmitter } from 'events';
-import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts } from './scripts/HumanActions';
-import Logger from './scripts/logger';
-import { BrowserProfile, Company, SocialMediaConfig } from './scripts/types';
-import { confirmIPConfiguration, dynamicWait } from './src/utils';
+import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts } from './src/scripts/HumanActions';
+import Logger from './src/services/logger';
+import { BrowserProfile, Company, SocialMediaConfig } from './src/types';
 import { stopBot } from './index';
-import { socialMediaConfigs } from './config/SocialMedia'; // Import the social media platformConfig
-import { botConfig } from './config/BotConfig';
+import { botConfig } from './src/config/BotConfig';
+import { socialMediaConfigs } from './src/config/SocialMedia';
+import { confirmIPConfiguration, dynamicWait } from './src/utils';
+import { CONFIG } from './src/config/constants';
 
 puppeteer.use(StealthPlugin());
 
 function getCompaniesData() {
-    const companiesData = JSON.parse(fs.readFileSync('./data/companies-data.json', 'utf-8'));
+    const companiesData = JSON.parse(fs.readFileSync(CONFIG.DATA_PATHS.COMPANIES, 'utf-8'));
     return companiesData.companies;
 }
 
 function getUsersData() {
-    const usersData = JSON.parse(fs.readFileSync('./data/users-data.json', 'utf-8'));
+    const usersData = JSON.parse(fs.readFileSync(CONFIG.DATA_PATHS.USERS, 'utf-8'));
     return usersData.users;
 }
 
@@ -36,7 +37,7 @@ export class CaptchaMonitor extends EventEmitter {
     private isMonitoring: boolean = false;
     private monitorInterval: NodeJS.Timeout | null = null;
 
-    constructor(page: Page, platformConfig: any, logger: Logger) {
+    constructor(page: Page, platformConfig: SocialMediaConfig, logger: Logger) {
         super();
         this.page = page;
         this.platformConfig = platformConfig;
@@ -152,64 +153,66 @@ async function runBot() {
     const browserProfilePath = profileManager.createProfile(userProfile);
 
     try {
-        browser = await puppeteer.launch({
-            headless: headlessBrowser === 'true' ? true : false,
-            userDataDir: browserProfilePath,
-            args: ['--no-sandbox', '--disable-setuid-sandbox',
-                ...(ip_address && ip_port ? [
-                    `--proxy-server=http://${ip_address}:${ip_port}`,
-                    '--disable-web-security',
-                    '--ignore-certificate-errors',
-                    '--enable-logging',
-                    '--v=1'
-                ] : [])
-            ]
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-        const users = getUsersData();
-        const user = users.find((u: { username: string; }) => u.username === username);
-        const userPlatforms = user.platforms;
-
-        // Initialize platforms up to maxTabs
-        for (let i = 0; i < botConfig.platforms.length; i++) {
-            const platform = botConfig.platforms[i];
-            if (userPlatforms.includes(platform)) {
-                logger.log(`${platform} :: <selc : usr> :: ${JSON.stringify(userPlatforms)}`);
-                const page = await browser.newPage();
-                await page.setViewport({ width: 1920, height: 1080 });
-                pages.set(platform, page);
-
-                await page.goto(socialMediaConfigs[platform].loginUrl);
-                logger.log(`Initialized ${platform} tab`);
-                await dynamicWait(3000, 5000);
-            }
-        }
-        
-        {   // this code block is only used to close the first empty tab.
-            let allPages = await browser.pages();
-            let page1st = allPages[0];
-            await page1st.close();
-            await dynamicWait(300, 500);
-        }
-
-        let [, page] = Array.from(pages)[0];
-        if (ip_address && ip_port && ip_username && ip_password) {
-            await page.authenticate({ username: ip_username, password: ip_password });
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
-            const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
-
-            if (!isIPConfigured) {
-                logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
-                stopBot(username);
-            }
-        } else {
-            logger.log("Continue Without Proxy!");
-        }
-
         while (true) {
-            await dynamicWait(1000, 3000);
+            browser = await puppeteer.launch({
+                headless: headlessBrowser === 'true' ? true : false,
+                userDataDir: browserProfilePath,
+                args: ['--no-sandbox', '--disable-setuid-sandbox',
+                    ...(ip_address && ip_port ? [
+                        `--proxy-server=http://${ip_address}:${ip_port}`,
+                        '--disable-web-security',
+                        '--ignore-certificate-errors',
+                        '--enable-logging',
+                        '--v=1'
+                    ] : [])
+                ]
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+            const users = getUsersData();
+            const user = users.find((u: { username: string; }) => u.username === username);
+            const userPlatforms = user.platforms;
+            let botConfigPlatforms = botConfig.platforms;
+            botConfigPlatforms = botConfigPlatforms.sort(() => Math.random() - 0.5);
+            
+            // Initialize platforms up to maxTabs
+            for (let i = 0; i < botConfigPlatforms.length; i++) {
+                const platform = botConfigPlatforms[i];
+                if (userPlatforms.includes(platform)) {
+                    logger.log(`${platform} :: <selc : usr> :: ${JSON.stringify(userPlatforms)}`);
+                    const page = await browser.newPage();
+                    await page.setViewport({ width: 1920, height: 1080 });
+                    pages.set(platform, page);
+
+                    await page.goto(socialMediaConfigs[platform].loginUrl);
+                    logger.log(`Initialized ${platform} tab`);
+                    await dynamicWait(30, 50);
+                }
+            }
+
+            {   // this code block is only used to close the first empty tab.
+                let allPages = await browser.pages();
+                let page1st = allPages[0];
+                await page1st.close();
+                await dynamicWait(30, 50);
+            }
+
+            let [, page] = Array.from(pages)[0];
+            if (ip_address && ip_port && ip_username && ip_password) {
+                await page.authenticate({ username: ip_username, password: ip_password });
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 20000));
+                const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
+
+                if (!isIPConfigured) {
+                    logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
+                    stopBot(username);
+                }
+            } else {
+                logger.log("Continue Without Proxy!");
+            }
+
+            await dynamicWait(10, 30);
             for (const [platform, page] of pages) {
 
                 let platformConfig = socialMediaConfigs[platform];
@@ -315,8 +318,11 @@ async function runBot() {
                 logger.log(`Operations completed on ${platform}. Switching tab for next platform in a few minutes.`);
                 await dynamicWait(botConfig.tabSwitchDelay * 1000 * 0.8, botConfig.tabSwitchDelay * 1000 * 1.2);
             }
+            if (browser) {
+                await browser.close();
+            }
             logger.log(`All platforms are visited once. Entered hibernation for almost ${botConfig.hibernationTime} minutes`);
-            await dynamicWait(botConfig.hibernationTime * 60 * 1000 * 0.8, botConfig.hibernationTime * 60 * 1000 * 1.2);
+            await dynamicWait(botConfig.hibernationTime * 60 * 0.8, botConfig.hibernationTime * 60 * 1.2);
         }
 
     } catch (error) {

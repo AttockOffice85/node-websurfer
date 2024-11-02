@@ -20,7 +20,7 @@ export interface SocialMediaConfig {
   passwordSelector: string;
   signinButtonSelector: string;
   homeUrl: string;
-  captcha?: string[];
+  captcha: string[];
   postLikeBtn: string;
   postReactionDiv?: string;
   headerSearchBtn?: string;

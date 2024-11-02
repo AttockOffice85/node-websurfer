@@ -793,3 +793,64 @@ async function scrollInstagramWithKeyboard(page: Page, logger: Logger) {
     await page.keyboard.press('ArrowDown');
     await dynamicWait(3000, 7000); // 3-7 seconds delay
 };
+
+export async function sendRandomFriendRequests(page: Page, requestCount: number, maxRequests: number = 20, logger: Logger): Promise<void> {
+    try {
+        logger.log("Starting friend request automation...");
+
+        // Ensure we don't exceed maximum requests
+        const targetRequests = Math.min(requestCount, maxRequests);
+        let sentRequests = 0;
+
+        // Get all potential friend profiles
+        const profileSelectors: any = await page.$$('div[aria-label="Search results"] div[role="feed"] > div div[data-ad-rendering-role="profile_name"] > h4 > span > a[attributionsrc][role="link"]');
+
+        if (!profileSelectors.length) {
+            logger.log("No profile elements found on the page");
+            return;
+        }
+
+        logger.log(`Found ${profileSelectors.length} potential profiles`);
+
+        // Process profiles until we reach target or run out of profiles
+        for (let i = 0; i < Math.min(profileSelectors.length, targetRequests); i++) {
+            try {
+                const profile = profileSelectors[i];
+
+                // Skip if profile is no longer in DOM
+                if (!profile?.isConnected()) {
+                    continue;
+                }
+
+                // Get profile name for logging
+                const profileName = await profile.evaluate((el: any) => el.textContent?.trim() || "Unknown");
+
+                // Hover over profile
+                await profile.hover();
+
+                // Random delay between 3-5 seconds
+                await new Promise((resolve) => setTimeout(resolve, Math.random() * 2000 + 3000));
+
+                // Find and click friend request button
+                const friendRequestBtn = await page.$('div[aria-label="Add friend"]');
+                if (friendRequestBtn) {
+                    await friendRequestBtn.click();
+                    sentRequests++;
+                    logger.log(`Sent friend request to ${profileName}`);
+                }
+
+                // Break if we've reached the target
+                if (sentRequests >= targetRequests) {
+                    break;
+                }
+            } catch (error) {
+                logger.log(`Failed to send friend request: ${(error as Error).message}`);
+            }
+        }
+
+        logger.log(`Friend request automation completed. Sent ${sentRequests} requests`);
+    } catch (error) {
+        logger.log(`Error in friend request automation: ${(error as Error).message}`);
+        throw error;
+    }
+}

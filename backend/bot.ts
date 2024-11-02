@@ -5,7 +5,7 @@ import { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 import { EventEmitter } from 'events';
-import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts } from './src/scripts/HumanActions';
+import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts, sendRandomFriendRequests } from './src/scripts/HumanActions';
 import Logger from './src/services/logger';
 import { BrowserProfile, Company, SocialMediaConfig } from './src/types';
 import { stopBot } from './index';
@@ -13,6 +13,7 @@ import { botConfig } from './src/config/BotConfig';
 import { socialMediaConfigs } from './src/config/SocialMedia';
 import { confirmIPConfiguration, dynamicWait } from './src/utils';
 import { CONFIG } from './src/config/constants';
+import { CaptchaMonitor } from './src/services/CaptchaMonitor';
 
 puppeteer.use(StealthPlugin());
 
@@ -29,73 +30,6 @@ function getUsersData() {
 const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
-
-export class CaptchaMonitor extends EventEmitter {
-    private page: Page;
-    private platformConfig: SocialMediaConfig;
-    private logger: Logger;
-    private isMonitoring: boolean = false;
-    private monitorInterval: NodeJS.Timeout | null = null;
-
-    constructor(page: Page, platformConfig: SocialMediaConfig, logger: Logger) {
-        super();
-        this.page = page;
-        this.platformConfig = platformConfig;
-        this.logger = logger;
-    }
-
-    startMonitoring() {
-        if (this.isMonitoring) return;
-
-        this.isMonitoring = true;
-        this.monitorInterval = setInterval(async () => {
-            try {
-                const currentUrl = this.page.url();
-                if (this.platformConfig.captcha && this.platformConfig.captcha.some((captchaString: string) => currentUrl.includes(captchaString))) {
-                    this.logger.log('Captcha detected during operation');
-                    this.emit('captchaDetected');
-
-                    // Wait for captcha resolution
-                    await this.waitForCaptchaResolution();
-                    this.emit('captchaResolved');
-                }
-            } catch (error) {
-                this.logger.error(`Error in captcha monitoring: ${error}`);
-            }
-        }, 2000); // Check every 2 seconds
-    }
-
-    stopMonitoring() {
-        if (this.monitorInterval) {
-            clearInterval(this.monitorInterval);
-            this.monitorInterval = null;
-        }
-        this.isMonitoring = false;
-    }
-
-    private async waitForCaptchaResolution(): Promise<void> {
-        try {
-            await Promise.race([
-                new Promise<void>((resolve) => {
-                    const checkInterval = setInterval(async () => {
-                        const currentUrl = await this.page.url();
-                        if (currentUrl === this.platformConfig.homeUrl) {
-                            clearInterval(checkInterval);
-                            this.logger.log('Captcha resolved successfully');
-                            resolve();
-                        }
-                    }, 3000);
-                }),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Captcha timeout')), 300000)
-                )
-            ]);
-        } catch (error) {
-            this.logger.error(`Captcha resolution timeout: ${error}`);
-            throw error;
-        }
-    }
-}
 
 class BrowserProfileManager {
     private baseDir: string;
@@ -175,7 +109,7 @@ async function runBot() {
             const userPlatforms = user.platforms;
             let botConfigPlatforms = botConfig.platforms;
             botConfigPlatforms = botConfigPlatforms.sort(() => Math.random() - 0.5);
-            
+
             // Initialize platforms up to maxTabs
             for (let i = 0; i < botConfigPlatforms.length; i++) {
                 const platform = botConfigPlatforms[i];
@@ -219,7 +153,10 @@ async function runBot() {
                 botConfig.selectedPlatform = platform;
                 await page.bringToFront();
 
-                await dynamicWait(300, 500);
+                const monitor = new CaptchaMonitor(page, browser, platformConfig.captcha);
+                await monitor.startMonitoring();
+
+                await dynamicWait(7, 9);
 
                 // Use the configuration for navigation
                 await page.goto(platformConfig.loginUrl);
@@ -245,40 +182,14 @@ async function runBot() {
                 }
                 await dynamicWait(10, 20);
 
-                const captchaMonitor = new CaptchaMonitor(page, platformConfig, logger);
-
-                // Create a promise that can be used to pause/resume bot operations
-                let pausePromise: Promise<void> | null = null;
-                let pauseResolve: (() => void) | null = null;
-
-                captchaMonitor.on('captchaDetected', () => {
-                    logger.log('Bot operations paused due to captcha');
-                    pausePromise = new Promise(resolve => {
-                        pauseResolve = resolve;
-                    });
-                });
-
-                captchaMonitor.on('captchaResolved', () => {
-                    logger.log('Resuming bot operations after captcha');
-                    if (pauseResolve) {
-                        pauseResolve();
-                        pausePromise = null;
-                        pauseResolve = null;
-                    }
-                    captchaMonitor.stopMonitoring();
-                });
-
-                // Start monitoring
-                captchaMonitor.startMonitoring();
-
                 try {
-                    // Check if operations are paused due to captcha
-                    if (pausePromise) {
-                        pausePromise;
-                    }
 
                     if (platformConfig.name === 'Instagram') {
                         await page.goto(platformConfig.homeUrl);
+                    }
+
+                    if (platformConfig.name === 'Facebook') {
+                        await sendRandomFriendRequests(page, 5, 1, logger);
                     }
 
                     // Perform human actions with captcha check

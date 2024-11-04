@@ -4,7 +4,6 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
-import { EventEmitter } from 'events';
 import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts, sendRandomFriendRequests } from './src/scripts/HumanActions';
 import Logger from './src/services/logger';
 import { BrowserProfile, Company, SocialMediaConfig } from './src/types';
@@ -102,7 +101,7 @@ async function runBot() {
                 ]
             });
 
-            await dynamicWait(10, 20);
+            await dynamicWait(1, 2);
 
             const users = getUsersData();
             const user = users.find((u: { username: string; }) => u.username === username);
@@ -121,7 +120,7 @@ async function runBot() {
 
                     await page.goto(socialMediaConfigs[platform].loginUrl);
                     logger.log(`Initialized ${platform} tab`);
-                    await dynamicWait(30, 50);
+                    await dynamicWait(3, 5);
                 }
             }
 
@@ -129,7 +128,7 @@ async function runBot() {
                 let allPages = await browser.pages();
                 let page1st = allPages[0];
                 await page1st.close();
-                await dynamicWait(30, 50);
+                await dynamicWait(3, 5);
             }
 
             let [, page] = Array.from(pages)[0];
@@ -153,14 +152,40 @@ async function runBot() {
                 botConfig.selectedPlatform = platform;
                 await page.bringToFront();
 
-                const monitor = new CaptchaMonitor(page, browser, platformConfig.captcha);
-                await monitor.startMonitoring();
+                const captchaMonitor = new CaptchaMonitor(page, browser, platformConfig.captcha, logger);
+
+                // Create a promise that can be used to pause/resume bot operations
+                let pausePromise: Promise<void> | null = null;
+                let pauseResolve: (() => void) | null = null;
+                captchaMonitor.on('captchaDetected', () => {
+                    logger.log('Bot operations paused due to captcha');
+                    pausePromise = new Promise(resolve => {
+                        pauseResolve = resolve;
+                    });
+                });
+
+                captchaMonitor.on('captchaResolved', () => {
+                    logger.log('Resuming bot operations after captcha');
+                    if (pauseResolve) {
+                        pauseResolve();
+                        pausePromise = null;
+                        pauseResolve = null;
+                    }
+                    captchaMonitor.stopMonitoring();
+                });
+                // Start monitoring
+                captchaMonitor.startMonitoring();
 
                 await dynamicWait(7, 9);
 
+                // Check if operations are paused due to captcha
+                if (pausePromise) {
+                    pausePromise;
+                }
+                
                 // Use the configuration for navigation
                 await page.goto(platformConfig.loginUrl);
-                await dynamicWait(10, 20);
+                await dynamicWait(1, 2);
 
                 const isLoginPage = await page.$(platformConfig.usernameSelector);
 
@@ -180,7 +205,7 @@ async function runBot() {
                 } else {
                     logger.log('Unknown Error In Login Process...');
                 }
-                await dynamicWait(10, 20);
+                await dynamicWait(1, 2);
 
                 try {
 
@@ -216,7 +241,7 @@ async function runBot() {
                         }
 
                         // Add random delay between companies
-                        await dynamicWait((Math.random() * 5000), 5000);
+                        await dynamicWait((Math.random() * 5), (Math.random() * 8));
                         await page.goto(platformConfig.homeUrl);
 
                         await performHumanActions(page, logger);
@@ -228,13 +253,13 @@ async function runBot() {
                 }
 
                 logger.log(`Operations completed on ${platform}. Switching tab for next platform in a few minutes.`);
-                await dynamicWait(botConfig.tabSwitchDelay * 1000 * 0.8, botConfig.tabSwitchDelay * 1000 * 1.2);
+                await dynamicWait(botConfig.tabSwitchDelay * 10 * 0.8, botConfig.tabSwitchDelay * 10 * 1.2);
             }
             if (browser) {
                 await browser.close();
             }
             logger.log(`All platforms are visited once. Entered hibernation for almost ${botConfig.hibernationTime} minutes`);
-            await dynamicWait(botConfig.hibernationTime * 60 * 0.8, botConfig.hibernationTime * 60 * 1.2);
+            await dynamicWait(botConfig.hibernationTime * 30 * 0.8, botConfig.hibernationTime * 30 * 1.2);
         }
 
     } catch (error) {

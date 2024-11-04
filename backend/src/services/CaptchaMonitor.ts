@@ -1,148 +1,66 @@
 import { Browser, Page } from 'puppeteer';
+import { EventEmitter } from 'events';
+import Logger from './logger';
 
-export class CaptchaMonitor {
-    private isRunning: boolean = false;
-    private intervalId: NodeJS.Timeout | null = null;
-    private urlPatterns: string[];
-    private page: Page;
+export class CaptchaMonitor extends EventEmitter {
     private browser: Browser;
-    private navigationListener: ((event: any) => void) | null = null;
-
-    constructor(page: Page, browser: Browser, urlPatterns: string[]) {
+    private page: Page;
+    private platformCaptchaUrls: string[];
+    private logger: Logger;
+    private isMonitoring: boolean = false;
+    private monitorInterval: NodeJS.Timeout | null = null;
+    constructor(page: Page, browser: Browser, platformCaptchaUrls: string[], logger: Logger) {
+        super();
         this.page = page;
         this.browser = browser;
-        this.urlPatterns = urlPatterns;
+        this.platformCaptchaUrls = platformCaptchaUrls;
+        this.logger = logger;
     }
-
-    private async checkCurrentUrl(): Promise<boolean> {
-        const currentUrl = await this.page.evaluate(() => window.location.href);
-        const matchedPattern = this.urlPatterns.find(pattern =>
-            currentUrl.includes(pattern)
-        );
-
-        if (matchedPattern) {
-            console.log(`URL match found: ${matchedPattern}`);
-            return true;
-        }
-        return false;
-    }
-
-    async startMonitoring(): Promise<void> {
-        this.isRunning = true;
-
-        this.navigationListener = async (event: any) => {
-            if (this.isRunning) {
-                const matched = await this.checkCurrentUrl();
-                if (matched) {
-                    await this.stopAllOperations();
-                }
-            }
-        };
-
-        this.page.on('load', this.navigationListener);
-        this.page.on('hashchange', this.navigationListener);
-
-        // Monitor URL changes via History API with proper typing
-        await this.page.evaluate(() => {
-            const originalPushState = window.history.pushState;
-            const originalReplaceState = window.history.replaceState;
-
-            window.history.pushState = function (
-                data: any,
-                unused: string,
-                url?: string | URL | null
-            ) {
-                originalPushState.call(this, data, unused, url);
-                window.dispatchEvent(new Event('locationchange'));
-            };
-
-            window.history.replaceState = function (
-                data: any,
-                unused: string,
-                url?: string | URL | null
-            ) {
-                originalReplaceState.call(this, data, unused, url);
-                window.dispatchEvent(new Event('locationchange'));
-            };
-
-            window.addEventListener('popstate', () => {
-                window.dispatchEvent(new Event('locationchange'));
-            });
-        });
-
-        await this.page.evaluate(() => {
-            window.addEventListener('locationchange', () => {
-                window.dispatchEvent(new Event('urlChanged'));
-            });
-        });
-
-        await this.page.exposeFunction('notifyUrlChange', async () => {
-            if (this.isRunning) {
-                const matched = await this.checkCurrentUrl();
-                if (matched) {
-                    await this.stopAllOperations();
-                }
-            }
-        });
-
-        await this.page.evaluate(() => {
-            window.addEventListener('urlChanged', () => {
-                (window as any).notifyUrlChange();
-            });
-        });
-
-        this.intervalId = setInterval(async () => {
+    startMonitoring() {
+        if (this.isMonitoring) return;
+        this.isMonitoring = true;
+        this.monitorInterval = setInterval(async () => {
             try {
-                if (this.isRunning) {
-                    const matched = await this.checkCurrentUrl();
-                    if (matched) {
-                        await this.stopAllOperations();
-                    }
+                const currentUrl = this.page.url();
+                if (this.platformCaptchaUrls && this.platformCaptchaUrls.some((captchaString: string) => currentUrl.includes(captchaString))) {
+                    this.logger.log('Captcha detected during operation');
+                    this.emit('captchaDetected');
+                    // Wait for captcha resolution
+                    await this.waitForCaptchaResolution();
+                    this.emit('captchaResolved');
                 }
             } catch (error) {
-                console.error('Error during URL monitoring:', error);
-                await this.stopAllOperations();
+                this.logger.error(`Error in captcha monitoring: ${error}`);
             }
-        }, 2000);
+        }, 2000); // Check every 2 seconds
     }
-
-    async stopAllOperations(): Promise<void> {
+    stopMonitoring() {
+        if (this.monitorInterval) {
+            clearInterval(this.monitorInterval);
+            this.monitorInterval = null;
+        }
+        this.isMonitoring = false;
+    }
+    private async waitForCaptchaResolution(): Promise<void> {
         try {
-            if (this.intervalId) {
-                clearInterval(this.intervalId);
-                this.intervalId = null;
-            }
-
-            this.isRunning = false;
-
-            if (this.navigationListener) {
-                this.page.off('load', this.navigationListener);
-                this.page.off('hashchange', this.navigationListener);
-            }
-
-            try {
-                await this.page.evaluate(() => window.stop());
-            } catch (error) {
-                console.error('Error stopping page navigation:', error);
-            }
-
-            await this.browser.close();
-            console.log('All operations stopped successfully');
+            await Promise.race([
+                new Promise<void>((resolve) => {
+                    const checkInterval = setInterval(async () => {
+                        const currentUrl = await this.page.url();
+                        if (!this.platformCaptchaUrls.some((captchaString: string) => currentUrl.includes(captchaString))) {
+                            clearInterval(checkInterval);
+                            this.logger.log('Captcha resolved successfully');
+                            resolve();
+                        }
+                    }, 3000);
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Captcha timeout')), 300000)
+                )
+            ]);
         } catch (error) {
-            console.error('Error stopping operations:', error);
-            try {
-                await this.browser.close();
-            } catch (e) {
-                console.error('Error force closing browser:', e);
-            }
+            this.logger.error(`Captcha resolution timeout: ${error}`);
+            throw error;
         }
-    }
-
-    isMonitoring(): boolean {
-        return this.isRunning;
-    }
-
-    updatePatterns(newPatterns: string[]): void {
-        this.urlPatterns = newPatterns;
     }
 }

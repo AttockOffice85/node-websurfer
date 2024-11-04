@@ -103,6 +103,21 @@ async function runBot() {
 
             await dynamicWait(1, 2);
 
+            if (ip_address && ip_port && ip_username && ip_password) {
+                logger.log(`Proxy Check::${ip_address} && ${ip_port} && ${ip_username} && ${ip_password}`);
+                const page = await browser.newPage();
+                await page.authenticate({ username: ip_username, password: ip_password });
+                await dynamicWait(1, 2);
+                const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
+
+                if (!isIPConfigured) {
+                    logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
+                    stopBot(username);
+                }
+            } else {
+                logger.log("Continue Without Proxy!");
+            }
+
             const users = getUsersData();
             const user = users.find((u: { username: string; }) => u.username === username);
             const userPlatforms = user.platforms;
@@ -129,20 +144,6 @@ async function runBot() {
                 let page1st = allPages[0];
                 await page1st.close();
                 await dynamicWait(3, 5);
-            }
-
-            let [, page] = Array.from(pages)[0];
-            if (ip_address && ip_port && ip_username && ip_password) {
-                await page.authenticate({ username: ip_username, password: ip_password });
-                await dynamicWait(10, 20);
-                const isIPConfigured = await confirmIPConfiguration(page, ip_address, logger);
-
-                if (!isIPConfigured) {
-                    logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
-                    stopBot(username);
-                }
-            } else {
-                logger.log("Continue Without Proxy!");
             }
 
             await dynamicWait(10, 30);
@@ -182,7 +183,7 @@ async function runBot() {
                 if (pausePromise) {
                     pausePromise;
                 }
-                
+
                 // Use the configuration for navigation
                 await page.goto(platformConfig.loginUrl);
                 await dynamicWait(1, 2);

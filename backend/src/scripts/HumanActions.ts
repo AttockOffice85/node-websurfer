@@ -601,11 +601,16 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
     ).filter((button): button is ElementHandle<HTMLButtonElement> => button !== null); // Type guard
 
     if (connectButtons.length > 0) {
-      const randomIndex = Math.floor(Math.random() * connectButtons.length);
-      await connectButtons[randomIndex].hover();
-      await connectButtons[randomIndex].click();
-      logger.log("Clicked Connect button");
-      await dynamicWait(3, 5);
+      const subsetSize = Math.ceil(connectButtons.length / 2);
+      const selectedButtons = connectButtons.slice(0, subsetSize);
+
+      // Iterate over the selected subset and click each button
+      for (const button of selectedButtons) {
+        await button.hover();
+        await button.click();
+        logger.log("Clicked Connect button");
+        await dynamicWait(3, 5); // Add delay between clicks
+      }
     }
   };
 
@@ -621,11 +626,16 @@ export async function performLinkedInNetworkActions(page: Page, logger: Logger) 
     ).filter((button): button is ElementHandle<HTMLButtonElement> => button !== null); // Type guard
 
     if (subscribeButtons.length > 0) {
-      const randomIndex = Math.floor(Math.random() * subscribeButtons.length);
-      await subscribeButtons[randomIndex].hover();
-      await subscribeButtons[randomIndex].click();
-      logger.log("Clicked Subscribe button");
-      await dynamicWait(3, 5);
+      const subsetSize = Math.ceil(subscribeButtons.length / 2);
+      const selectedButtons = subscribeButtons.slice(0, subsetSize);
+
+      // Iterate over the selected subset and click each button
+      for (const button of selectedButtons) {
+        await button.hover();
+        await button.click();
+        logger.log("Clicked Connect button");
+        await dynamicWait(3, 5); // Add delay between clicks
+      }
     }
   };
 

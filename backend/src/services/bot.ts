@@ -212,9 +212,9 @@ async function runBot() {
           await typeWithHumanLikeSpeed(page, platformConfig.passwordSelector, password, logger);
           await dynamicWait(3, 5);
           await page.click(platformConfig.signinButtonSelector);
-          await dynamicWait(5, 6);
-
-          console.log("Login successful. Proceeding to home page.");
+          await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+          await dynamicWait(15, 26);
+          logger.log("Login successful. Proceeding to home page.");
         } else if (page.url() === platformConfig.homeUrl) {
           logger.log("On the homepage...");
         } else {
@@ -274,13 +274,13 @@ async function runBot() {
         }
 
         logger.log(`Operations completed on ${platform}. Switching tab for next platform in a few minutes.`);
-        await dynamicWait(botConfig.tabSwitchDelay * 10 * 0.8, botConfig.tabSwitchDelay * 10 * 1.2);
+        await dynamicWait(botConfig.tabSwitchDelay * 10 * 0.8, botConfig.tabSwitchDelay * 20 * 1.2);
       }
       if (browser) {
         await browser.close();
       }
       logger.log(`All platforms are visited once. Entered hibernation for almost ${botConfig.hibernationTime} minutes`);
-      await dynamicWait(botConfig.hibernationTime * 30 * 0.8, botConfig.hibernationTime * 30 * 1.2);
+      await dynamicWait(botConfig.hibernationTime * 30 * 0.8, botConfig.hibernationTime * 40 * 1.2);
     }
   } catch (error) {
     logger.error(`Bot operation error: ${error}`);

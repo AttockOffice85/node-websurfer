@@ -5,3 +5,29 @@
 #console-logs {
   max-height: calc(100vh - 85px);
 }
+
+table#bot-entries {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table#bot-entries thead,
+table#bot-entries th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+table#bot-entries tbody {
+  display: block;
+  max-height: calc(100vh - 270px);
+  overflow-y: auto;
+  width: 100%;
+}
+
+table#bot-entries tr {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+}

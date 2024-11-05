@@ -78,6 +78,9 @@ async function runBot() {
   const userProfile: BrowserProfile = {
     name: botUserName,
     theme: "dark",
+    zoomLevel: 0,
+    language: "",
+    fontSize: 0
   };
 
   const browserProfilePath = profileManager.createProfile(userProfile);

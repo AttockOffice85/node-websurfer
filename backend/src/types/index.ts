@@ -9,8 +9,10 @@ export interface Company {
 
 export interface BrowserProfile {
   name: string;
-  theme: string;
-  // Add other profile preferences as needed
+  theme: 'dark' | 'light';
+  zoomLevel: number;
+  language: string;
+  fontSize: number;
 }
 
 export interface SocialMediaConfig {

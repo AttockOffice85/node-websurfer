@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { performHumanActions, typeWithHumanLikeSpeed, performProfileSearchAndLike, likeRandomPosts, sendRandomFriendRequests } from './src/scripts/HumanActions';
 import Logger from './src/services/logger';
-import { BrowserProfile, Company, SocialMediaConfig } from './src/types';
+import { BrowserProfile, Company } from './src/types';
 import { stopBot } from './index';
 import { botConfig } from './src/config/BotConfig';
 import { socialMediaConfigs } from './src/config/SocialMedia';
@@ -30,6 +30,19 @@ const headlessBrowser: string | undefined = process.env.HEADLESS_BROWSER;
 const randomPosts: string | number | undefined = process.env.NO_OF_RANDOM_POSTS;
 const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
 
+function generateRandomProfile(name: string): BrowserProfile {
+    const themes: ('dark' | 'light')[] = ['dark', 'light'];
+    const languages = ['en-US', 'fr-FR', 'es-ES', 'de-DE'];
+
+    return {
+        name: name,
+        theme: themes[Math.floor(Math.random() * themes.length)],
+        zoomLevel: Math.random() * (1.2 - 0.8) + 0.8, // Random zoom between 0.8 and 1.2
+        language: languages[Math.floor(Math.random() * languages.length)],
+        fontSize: Math.floor(Math.random() * (20 - 12) + 12) // Random font size between 12 and 20
+    };
+}
+
 class BrowserProfileManager {
     private baseDir: string;
 
@@ -44,12 +57,30 @@ class BrowserProfileManager {
         const profilePath = path.join(this.baseDir, profile.name);
         if (!fs.existsSync(profilePath)) {
             fs.mkdirSync(profilePath, { recursive: true });
+            this.setProfilePreferences(profilePath, profile);
         }
-
-        // Save profile preferences
-        fs.writeFileSync(path.join(profilePath, 'preferences.json'), JSON.stringify(profile, null, 2));
-
         return profilePath;
+    }
+
+    private setProfilePreferences(profilePath: string, profile: BrowserProfile) {
+        const preferencesPath = path.join(profilePath, 'Default', 'Preferences');
+
+        const randomPreferences = {
+            profile: {
+                content_settings: {
+                    exceptions: {
+                        cookies: { '*': { setting: 1 } }
+                    }
+                },
+                theme: profile.theme === 'dark' ? 1 : 0
+            },
+            intl: { accept_languages: profile.language },
+            webkit: { text_size_multiplier: profile.zoomLevel },
+            font_size: { default_fixed_size: profile.fontSize }
+        };
+
+        fs.mkdirSync(path.dirname(preferencesPath), { recursive: true });
+        fs.writeFileSync(preferencesPath, JSON.stringify(randomPreferences, null, 2));
     }
 
     getProfilePath(profileName: string): string {
@@ -78,11 +109,12 @@ async function runBot() {
     let pages: Map<string, Page> = new Map();
 
     const profileManager = new BrowserProfileManager();
-    const userProfile: BrowserProfile = {
-        name: botUserName,
-        theme: 'dark'
-    };
 
+    /* -------------------------------------------------------------------------- */
+    /*                    Generates random profile settings                       */
+    /* -------------------------------------------------------------------------- */
+    
+    const userProfile = generateRandomProfile(botUserName); 
     const browserProfilePath = profileManager.createProfile(userProfile);
 
     try {

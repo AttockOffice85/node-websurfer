@@ -83,3 +83,15 @@ export const botStatusExplanations = [
     desc: "All platforms are visited once. Bot will automatically start almost after 60 minutes.",
   },
 ];
+
+export const logDescriptions = [
+  { title: "Starting bot", description: "The bot is initializing for the specified task." },
+  { title: "Bot operation error", description: "There’s an issue in the bot's code. For instance, 'Cannot read properties of undefined' means the bot couldn't find a necessary data point. The 'ERR_INVALID_AUTH_CREDENTIALS' error suggests a login issue, possibly due to incorrect credentials." },
+  { title: "Stopped the bot", description: "The bot has stopped, either automatically after encountering an error or manually by the user." },
+  { title: "Manually stopped. Not restarting", description: "The bot was manually stopped and won’t automatically restart." },
+  { title: "Selecting platforms", description: "The bot is identifying which social platforms to work on (e.g., LinkedIn, Instagram, Facebook)." },
+  { title: "Initialized tab", description: "The bot successfully opened the specified platform's tab and is ready to interact with it." },
+  { title: "Continue Without Proxy", description: "The bot attempted to use a proxy but is now proceeding without one." },
+  { title: "typeWithHumanLikeSpeed", description: "The bot is simulating human typing speed on a platform (e.g., LinkedIn) to appear more natural." },
+  { title: "Operations completed on [platform]", description: "The bot finished its tasks on one platform and will soon switch to the next platform." },
+];

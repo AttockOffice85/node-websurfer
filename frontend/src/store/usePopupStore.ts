@@ -12,3 +12,9 @@ export const usePopupCompanyFormStore = create<PopupState>((set) => ({
     openPopup: () => set({ isOpen: true }),
     closePopup: () => set({ isOpen: false }),
 }));
+
+export const usePopupLogsHandbookStore = create<PopupState>((set) => ({
+    isOpen: false,
+    openPopup: () => set({ isOpen: true }),
+    closePopup: () => set({ isOpen: false }),
+}));

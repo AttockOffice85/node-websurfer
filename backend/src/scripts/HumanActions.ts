@@ -213,7 +213,7 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
         // Step 2: Scroll down to load more posts and simulate reading
         previousHeight = await page.evaluate(() => document.body.scrollHeight);
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await dynamicWait(4000, 7000);
+        await dynamicWait(40, 70);
 
         // Step 3: Check if the page has more content to load
         const newHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -236,7 +236,7 @@ export async function likeRandomPosts(page: Page, count: number, logger: Logger)
             b.scrollIntoView({ behavior: 'smooth', block: 'center' })
         );
 
-        await dynamicWait(5000, 12000);
+        await dynamicWait(5, 12);
 
         // Click the "Like" button
         await button.click();
@@ -304,7 +304,7 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
                     // Click the button and wait for navigation
                     await button.click();
                     await page.waitForNavigation();
-                    await dynamicWait(3000, 5000);
+                    await dynamicWait(3, 5);
                     await linkedinCompanyProfileAct(page, companyURL, logger);
                     break;  // Exit the loop after clicking the desired button
                 }
@@ -343,7 +343,7 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
 
         logger.log(`line 355:: ${companyProfiles}`);
 
-        await dynamicWait(3000, 5000);
+        await dynamicWait(3, 5);
 
         if (companyProfiles) {
             // Highlight the profile link with a red border
@@ -352,7 +352,7 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
             }, companyProfiles);
 
             await companyProfiles.click();
-            await dynamicWait(3000, 5000);
+            await dynamicWait(4, 6);
 
             await instagramCompanyProfileAct(page, companyURL, logger);
 
@@ -360,7 +360,7 @@ export async function performProfileSearchAndLike(page: Page, searchQuery: strin
             logger.log(`Company profile link not found.`);
         }
 
-        await dynamicWait(3000, 5000);
+        await dynamicWait(30, 50);
     }
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 5000));
 
@@ -504,7 +504,7 @@ export async function performLinkedInFollowActions(page: Page, logger: Logger) {
                 }, buttonToClick);
 
                 // Wait after clicking the follow button
-                await dynamicWait(3000, 6000);
+                await dynamicWait(30, 60);
             }
         }
     };
@@ -711,7 +711,7 @@ async function facebookCompanyProfileAct(page: Page, companyURL: string, logger:
 async function instagramCompanyProfileAct(page: Page, companyURL: string, logger: Logger) {
     // Counter to limit likes
     let likesCount = 0;
-    await dynamicWait(3000, 5000);
+    await dynamicWait(3, 5);
 
     // Wait for the main content area to load
     await page.waitForSelector('main[role="main"] > div > div:nth-child(3)');
@@ -725,7 +725,7 @@ async function instagramCompanyProfileAct(page: Page, companyURL: string, logger
             // Scroll post into view, hover over it, and click to open
             await page.evaluate(element => element.scrollIntoView({ behavior: 'smooth', block: 'center' }), post);
             await post.hover();
-            await dynamicWait(1000, 3000);
+            await dynamicWait(10, 30);
             await post.click();
 
             // Wait for the post to load and check if it's already liked
@@ -741,7 +741,7 @@ async function instagramCompanyProfileAct(page: Page, companyURL: string, logger
                 }, likeButtonParent);
 
                 // Hover over and click the Like button parent
-                await dynamicWait(3000, 8000);
+                await dynamicWait(3, 8);
                 await likeButtonParent.hover();
                 await likeButtonParent.click();
 
@@ -752,14 +752,14 @@ async function instagramCompanyProfileAct(page: Page, companyURL: string, logger
                 const unlikeButtonParent = await page.$('section div[role="button"]:has(svg[aria-label="Unlike"])');
                 await page.evaluate((btn) => { if (btn) btn.style.border = '8px solid blue'; }, unlikeButtonParent);
 
-                await dynamicWait(5000, 10000);
+                await dynamicWait(5, 1);
                 logger.log("Post liked.");
                 likesCount++;
             } else {
                 logger.error("Like button not found, skipping post.");
             }
 
-            await dynamicWait(1000, 2000);
+            await dynamicWait(1, 2);
             await scrollInstagramWithKeyboard(page, logger);
         } catch (error) {
             logger.error(`Error interacting with Instagram post: ${error}`);
@@ -780,16 +780,77 @@ async function scrollInstagramWithKeyboard(page: Page, logger: Logger) {
     for (let i = 0; i < scrollTimes; i++) {
         // Simulate pressing the "ArrowDown" key for smoother scrolling
         await page.keyboard.press('ArrowDown');
-        await dynamicWait(5000, 10000); // 5-10 seconds delay
+        await dynamicWait(5, 10);
     }
 
     // Occasionally simulate pressing the "ArrowUp" key to scroll back up
     if (Math.random() < 0.3) {
         await page.keyboard.press('ArrowUp');
-        await dynamicWait(3000, 5000); // 3-5 seconds delay
+        await dynamicWait(3, 5);
     }
 
     // Scroll down again using the "ArrowDown" key
     await page.keyboard.press('ArrowDown');
-    await dynamicWait(3000, 7000); // 3-7 seconds delay
+    await dynamicWait(30, 70);
 };
+
+export async function sendRandomFriendRequests(page: Page, requestCount: number, maxRequests: number = 20, logger: Logger): Promise<void> {
+    try {
+        logger.log("Starting friend request automation...");
+
+        // Ensure we don't exceed maximum requests
+        const targetRequests = Math.min(requestCount, maxRequests);
+        let sentRequests = 0;
+
+        // Get all potential friend profiles
+        const profileSelectors: any = await page.$$('div[aria-label="Search results"] div[role="feed"] > div div[data-ad-rendering-role="profile_name"] > h4 > span > a[attributionsrc][role="link"]');
+
+        if (!profileSelectors.length) {
+            logger.log("No profile elements found on the page");
+            return;
+        }
+
+        logger.log(`Found ${profileSelectors.length} potential profiles`);
+
+        // Process profiles until we reach target or run out of profiles
+        for (let i = 0; i < Math.min(profileSelectors.length, targetRequests); i++) {
+            try {
+                const profile = profileSelectors[i];
+
+                // Skip if profile is no longer in DOM
+                if (!profile?.isConnected()) {
+                    continue;
+                }
+
+                // Get profile name for logging
+                const profileName = await profile.evaluate((el: any) => el.textContent?.trim() || "Unknown");
+
+                // Hover over profile
+                await profile.hover();
+
+                // Random delay between 3-5 seconds
+                await new Promise((resolve) => setTimeout(resolve, Math.random() * 2000 + 3000));
+
+                // Find and click friend request button
+                const friendRequestBtn = await page.$('div[aria-label="Add friend"]');
+                if (friendRequestBtn) {
+                    await friendRequestBtn.click();
+                    sentRequests++;
+                    logger.log(`Sent friend request to ${profileName}`);
+                }
+
+                // Break if we've reached the target
+                if (sentRequests >= targetRequests) {
+                    break;
+                }
+            } catch (error) {
+                logger.log(`Failed to send friend request: ${(error as Error).message}`);
+            }
+        }
+
+        logger.log(`Friend request automation completed. Sent ${sentRequests} requests`);
+    } catch (error) {
+        logger.log(`Error in friend request automation: ${(error as Error).message}`);
+        throw error;
+    }
+}

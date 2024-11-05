@@ -24,7 +24,7 @@ const BotsList: React.FC = () => {
     /* ------------------------------------------------------------------------------------------ */
     const handleStatusClick = (status: string) => {
         setClickedStatus(status);
-        setTimeout(() => { setClickedStatus(null); }, 5000);
+        setTimeout(() => { setClickedStatus(null); }, 2500);
     };
 
     /* ------------------------------------------------------------------------------------------ */
@@ -183,7 +183,7 @@ const BotsList: React.FC = () => {
                 </div>
             </div>
 
-            <table className='min-w-full bg-white border border-gray-300 rounded-lg shadow-md'>
+            <table id='bot-entries' className='min-w-full bg-white border border-gray-300 rounded-lg shadow-md'>
                 <thead className='bg-gray-100 border-b'>
                     <tr>
                         <th className='px-4 py-3 text-start tracking-wider border-b'>Sr. #</th>
@@ -244,7 +244,7 @@ const BotsList: React.FC = () => {
                 </div>
                 <ul className="w-full">
                     {botStatusExplanations?.map(({ status, desc }, index) => (
-                        <li key={index} className={`w-full flex justify-start items-baseline gap-2 py-1 border-b px-1.5 ${clickedStatus?.toLocaleLowerCase() === status.toLocaleLowerCase() ? 'bg-blue-900/60 animate-pulse' : ''}`}>
+                        <li key={index} className={`w-full flex gap-2 py-1 border-b px-1.5 ${clickedStatus?.toLocaleLowerCase() === status.toLocaleLowerCase() ? 'bg-blue-500/75 scale-150 absolute top-0 left-0 right-0 bottom-0 z-50 justify-center items-center' : 'justify-start items-baseline'}`}>
                             <p className="font-bold">{status}</p> <span>: </span>
                             <p className="font-semibold">{desc}</p>
                         </li>

@@ -80,6 +80,17 @@ const BotInfo: React.FC = () => {
         }
     }, [logData]);
 
+    /* ------------------------------------ x ----------------------------------- */
+
+    useEffect(() => {
+        // Set the document title dynamically based on the username
+        if (username) {
+            document.title = `Bot Info - ${username}`;
+        } else {
+            document.title = 'Bot Info';
+        }
+    }, [username]);
+
     if (loading) return <div className='text-center p-4'>Loading...</div>;
     if (error) return <div className='text-center p-4 text-red-500'>Error: {error}</div>;
 

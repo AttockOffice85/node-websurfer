@@ -1,3 +1,4 @@
+// backend\scripts\HumanActions.ts
 import { ElementHandle, Page } from "puppeteer";
 import Logger from "../services/logger";
 import { socialMediaConfigs } from "../config/SocialMedia"; // Import the social media config
@@ -400,6 +401,10 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
         logger.log(`likeRandomPostsWithReactions::> Found enough unliked posts (${availableCount} available).`);
         break;
       }
+      // Step 2: Scroll down to load more posts and simulate reading
+      previousHeight = await page.evaluate(() => document.body.scrollHeight);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await dynamicWait(40, 70);
 
       // Step 2: Scroll to the bottom of the page to load more posts
       previousHeight = await page.evaluate(() => document.body.scrollHeight);
@@ -425,8 +430,7 @@ export async function likeRandomPostsWithReactions(page: Page, count: number, lo
       // Scroll the button into view
       await button.evaluate((b: { scrollIntoView: (arg0: { behavior: string; block: string }) => any }) => b.scrollIntoView({ behavior: "smooth", block: "center" }));
 
-      // Simulate reading time before reacting (2-5 seconds)
-      await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 3000));
+      await dynamicWait(5, 12);
 
       // Step 7: Hover over the like button to trigger the reactions menu
       await button.hover();
@@ -766,9 +770,9 @@ async function instagramCompanyProfileAct(page: Page, companyURL: string, logger
   for (let post of companyPosts) {
     try {
       // Scroll post into view, hover over it, and click to open
-      await page.evaluate((element) => element.scrollIntoView({ behavior: "smooth", block: "center" }), post);
+      await page.evaluate(element => element.scrollIntoView({ behavior: 'smooth', block: 'center' }), post);
       await post.hover();
-      await dynamicWait(1000, 3000);
+      await dynamicWait(10, 30);
       await post.click();
 
       // Wait for the post to load and check if it's already liked
@@ -784,7 +788,7 @@ async function instagramCompanyProfileAct(page: Page, companyURL: string, logger
         }, likeButtonParent);
 
         // Hover over and click the Like button parent
-        await dynamicWait(3000, 8000);
+        await dynamicWait(3, 8);
         await likeButtonParent.hover();
         await likeButtonParent.click();
 
@@ -797,14 +801,14 @@ async function instagramCompanyProfileAct(page: Page, companyURL: string, logger
           if (btn) btn.style.border = "8px solid blue";
         }, unlikeButtonParent);
 
-        await dynamicWait(5000, 10000);
+        await dynamicWait(5, 1);
         logger.log("Post liked.");
         likesCount++;
       } else {
         logger.error("Like button not found, skipping post.");
       }
 
-      await dynamicWait(1000, 2000);
+      await dynamicWait(1, 2);
       await scrollInstagramWithKeyboard(page, logger);
     } catch (error) {
       logger.error(`Error interacting with Instagram post: ${error}`);
@@ -828,24 +832,20 @@ async function scrollInstagramWithKeyboard(page: Page, logger: Logger) {
 
   for (let i = 0; i < scrollTimes; i++) {
     // Simulate pressing the "ArrowDown" key for smoother scrolling
-    await page.keyboard.press("ArrowDown");
-    await dynamicWait(5000, 10000); // 5-10 seconds delay
+    await page.keyboard.press('ArrowDown');
+    await dynamicWait(5, 10);
   }
 
   // Occasionally simulate pressing the "ArrowUp" key to scroll back up
   if (Math.random() < 0.3) {
-    await page.keyboard.press("ArrowUp");
-    await dynamicWait(3000, 5000); // 3-5 seconds delay
+    await page.keyboard.press('ArrowUp');
+    await dynamicWait(3, 5);
   }
 
   // Scroll down again using the "ArrowDown" key
-  await page.keyboard.press("ArrowDown");
-  await dynamicWait(3000, 7000); // 3-7 seconds delay
-}
-
-/* ---------------------------------------------------------------------------------------------- */
-/*                               Send Random Friend Reqs On Facebook                              */
-/* ---------------------------------------------------------------------------------------------- */
+  await page.keyboard.press('ArrowDown');
+  await dynamicWait(30, 70);
+};
 
 export async function sendRandomFriendRequests(page: Page, requestCount: number, maxRequests: number = 20, logger: Logger): Promise<void> {
   try {

@@ -92,7 +92,7 @@ const BotInfo: React.FC = () => {
     }, [username]);
 
     if (loading) return <div className='text-center p-4'>Loading...</div>;
-    if (error) return <div className='text-center p-4 text-red-500'>Error: {error}</div>;
+    if (error) return <div className='text-center p-4 text-red-500'>Error: Log file not found. Start the bot first.</div>;
 
     return (
         <div className='container mx-auto p-4'>

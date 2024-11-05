@@ -114,6 +114,7 @@ async function runBot() {
                     logger.error('IP configuration failed, after 3 attempts. Stopping bot from further process.');
                     stopBot(username);
                 }
+                await page.close();
             } else {
                 logger.log("Continue Without Proxy!");
             }

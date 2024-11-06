@@ -26,27 +26,159 @@ const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
 class BrowserProfileManager {
   private baseDir: string;
 
-  constructor(baseDir: string = "./browsers") {
+  constructor(baseDir: string = './browsers/profiles') {
     this.baseDir = baseDir;
     if (!fs.existsSync(this.baseDir)) {
       fs.mkdirSync(this.baseDir, { recursive: true });
     }
   }
 
+  generateRandomProfile(name: string): BrowserProfile {
+    const themes: ('dark' | 'light')[] = ['dark', 'light'];
+    const languages = ['en-US', 'en-AU', 'en-GB'];
+
+    return {
+      name: name,
+      color: -Math.floor(Math.random() * 1767215),
+      theme: themes[Math.floor(Math.random() * themes.length)],
+      zoomLevel: Math.random() * (1.2 - 0.8) + 0.8,
+      language: languages[Math.floor(Math.random() * languages.length)],
+      fontSize: Math.floor(Math.random() * (20 - 12) + 12)
+    };
+  }
+
   createProfile(profile: BrowserProfile): string {
     const profilePath = path.join(this.baseDir, profile.name);
+
+    // Create the profile directory structure
     if (!fs.existsSync(profilePath)) {
       fs.mkdirSync(profilePath, { recursive: true });
-    }
 
-    // Save profile preferences
-    fs.writeFileSync(path.join(profilePath, "preferences.json"), JSON.stringify(profile, null, 2));
+      // Create necessary subdirectories
+      const defaultDir = path.join(profilePath, 'Default');
+      fs.mkdirSync(defaultDir, { recursive: true });
+
+      // Create Local State file
+      const localState = {
+        profile: {
+          info_cache: {
+            Default: {
+              name: profile.name,
+              is_using_default_name: false
+            }
+          },
+          last_used: 'Default'
+        }
+      };
+      fs.writeFileSync(
+        path.join(profilePath, 'Local State'),
+        JSON.stringify(localState, null, 2)
+      );
+
+      // Create Preferences file
+      this.setProfilePreferences(profilePath, profile);
+    }
 
     return profilePath;
   }
 
-  getProfilePath(profileName: string): string {
-    return path.join(this.baseDir, profileName);
+  private setProfilePreferences(profilePath: string, profile: BrowserProfile) {
+    const preferencesPath = path.join(profilePath, 'Default', 'Preferences');
+
+    const preferences = {
+      profile: {
+        name: profile.name,
+        avatar_index: Math.floor(Math.random() * 10),
+        content_settings: {
+          exceptions: {
+            cookies: { '*': { setting: 1 } }
+          }
+        },
+        exit_type: "Normal",
+        name_dictionary: {
+          [profile.name]: {
+            "name": profile.name,
+            "using_default_name": false
+          }
+        }
+      },
+      browser: {
+        has_seen_welcome_page: false,
+        theme: {
+          color_variant: 1,
+          user_color: profile.color,
+        },
+        window_placement: {
+          bottom: 810,
+          left: 0,
+          maximized: false,
+          right: 1055,
+          top: 0,
+          work_area_bottom: 1030,
+          work_area_left: 0,
+          work_area_right: 1920,
+          work_area_top: 0
+        }
+      },
+      bookmark_bar: {
+        show_on_all_tabs: false
+      },
+      intl: {
+        accept_languages: profile.language,
+        selected_languages: profile.language
+      },
+      webkit: {
+        webprefs: {
+          default_fixed_font_size: profile.fontSize,
+          default_font_size: profile.fontSize,
+          text_size_multiplier: profile.zoomLevel
+        }
+      },
+      extensions: {
+        theme: {
+          use_system: false,
+          custom_theme: profile.theme === 'dark'
+        }
+      },
+      session: {
+        restore_on_startup: 4
+      }
+    };
+
+    fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
+  }
+
+  async launchBrowser(profile: BrowserProfile, options: any = {}): Promise<Browser> {
+    const profilePath = this.createProfile(profile);
+
+    const defaultOptions = {
+      headless: false,
+      userDataDir: profilePath,
+      args: [
+        // `--user-data-dir=${profilePath}`,
+        `--profile-directory=${profile.name}`,
+        `--window-name=${profile.name}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        `--profile-directory=Default`,
+        '--disable-extensions-except=""',
+        '--disable-default-apps',
+        '--no-default-browser-check',
+        '--no-first-run',
+        '--disable-sync',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process'
+      ]
+    };
+
+    const mergedOptions = { ...defaultOptions, ...options };
+
+    // Merge args arrays if they exist in options
+    if (options.args) {
+      mergedOptions.args = [...defaultOptions.args, ...options.args];
+    }
+
+    return await puppeteer.launch(mergedOptions);
   }
 }
 
@@ -74,24 +206,16 @@ async function runBot() {
   let browser: Browser | null = null;
   let pages: Map<string, Page> = new Map();
 
-  const profileManager = new BrowserProfileManager();
-  const userProfile: BrowserProfile = {
-    name: botUserName,
-    theme: "dark",
-    zoomLevel: 0,
-    language: "",
-    fontSize: 0
-  };
+  /* -------------------------------------------------------------------------- */
+  /*                    Generates random profile settings                       */
+  /* -------------------------------------------------------------------------- */
 
-  const browserProfilePath = profileManager.createProfile(userProfile);
+  const profileManager = new BrowserProfileManager();
+  const userProfile = profileManager.generateRandomProfile(botUserName);
 
   try {
     while (true) {
-      browser = await puppeteer.launch({
-        headless: headlessBrowser === "true" ? true : false,
-        userDataDir: browserProfilePath,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", ...(ip_address && ip_port ? [`--proxy-server=http://${ip_address}:${ip_port}`, "--disable-web-security", "--ignore-certificate-errors", "--enable-logging", "--v=1"] : [])],
-      });
+      browser = await profileManager.launchBrowser(userProfile);
 
       /* --------------------------------------- Some Wait -------------------------------------- */
 

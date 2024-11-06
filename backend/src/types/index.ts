@@ -8,6 +8,7 @@ export interface Company {
 
 export interface BrowserProfile {
   name: string;
+  color: any;
   theme: 'dark' | 'light';
   zoomLevel: number;
   language: string;

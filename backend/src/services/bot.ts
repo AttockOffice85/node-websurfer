@@ -26,7 +26,7 @@ const noOfRandomPostsToReact: number = randomPosts ? parseInt(randomPosts) : 3;
 class BrowserProfileManager {
   private baseDir: string;
 
-  constructor(baseDir: string = './browsers/profiles') {
+  constructor(baseDir: string = './browsers') {
     this.baseDir = baseDir;
     if (!fs.existsSync(this.baseDir)) {
       fs.mkdirSync(this.baseDir, { recursive: true });
@@ -47,14 +47,13 @@ class BrowserProfileManager {
     };
   }
 
-  createProfile(profile: BrowserProfile): string {
+  async createProfile(profile: BrowserProfile): Promise<string> {
     const profilePath = path.join(this.baseDir, profile.name);
 
-    // Create the profile directory structure
-    if (!fs.existsSync(profilePath)) {
+    try {
+      // Check if profile directory already exists
       fs.mkdirSync(profilePath, { recursive: true });
 
-      // Create necessary subdirectories
       const defaultDir = path.join(profilePath, 'Default');
       fs.mkdirSync(defaultDir, { recursive: true });
 
@@ -70,19 +69,18 @@ class BrowserProfileManager {
           last_used: 'Default'
         }
       };
-      fs.writeFileSync(
-        path.join(profilePath, 'Local State'),
-        JSON.stringify(localState, null, 2)
-      );
+      fs.writeFileSync(path.join(profilePath, 'Local State'), JSON.stringify(localState, null, 2));
 
       // Create Preferences file
-      this.setProfilePreferences(profilePath, profile);
+      await this.setProfilePreferences(profilePath, profile);
+    } catch (error) {
+      console.error(`Error creating profile for ${profile.name}:`, error);
     }
 
     return profilePath;
   }
 
-  private setProfilePreferences(profilePath: string, profile: BrowserProfile) {
+  private async setProfilePreferences(profilePath: string, profile: BrowserProfile) {
     const preferencesPath = path.join(profilePath, 'Default', 'Preferences');
 
     const preferences = {
@@ -145,11 +143,11 @@ class BrowserProfileManager {
       }
     };
 
-    fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
+    await fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
   }
 
-  async launchBrowser(profile: BrowserProfile, options: any = {}): Promise<Browser> {
-    const profilePath = this.createProfile(profile);
+  async launchBrowser(profile: BrowserProfile, options: any = {}): Promise<Browser | null> {
+    const profilePath = await this.createProfile(profile);
 
     const defaultOptions = {
       headless: false,
@@ -173,12 +171,16 @@ class BrowserProfileManager {
 
     const mergedOptions = { ...defaultOptions, ...options };
 
-    // Merge args arrays if they exist in options
     if (options.args) {
       mergedOptions.args = [...defaultOptions.args, ...options.args];
     }
 
-    return await puppeteer.launch(mergedOptions);
+    try {
+      return await puppeteer.launch(mergedOptions);
+    } catch (error) {
+      console.error(`Failed to launch browser for profile ${profile.name}:`, error);
+      return null;
+    }
   }
 }
 
@@ -216,6 +218,9 @@ async function runBot() {
   try {
     while (true) {
       browser = await profileManager.launchBrowser(userProfile);
+      if (!browser) {
+        return;
+      }
 
       /* --------------------------------------- Some Wait -------------------------------------- */
 
